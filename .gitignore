@@ -1,0 +1,12 @@
+# Untrack pycache
+__pycache__/**
+
+# Untrack package folders
+bullet3/**
+python-fcl/**
+sparse_rrt/**
+
+# Untrack personal folders
+data/**
+jupyter_ws/**
+.vscode/**
