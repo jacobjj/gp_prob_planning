@@ -26,6 +26,8 @@ def get_model(robot, obstacles, model):
         p.resetBasePositionAndOrientation(robot, np.r_[X[i, :], 0.1], robotOrientation)
         Y[i] = model.get_distance(obstacles, robot)
 
+    # Add noise to the distance measure
+    Y = Y + np.random.rand(samples,2)
     # kernel = GPy.kern.Matern52(2,ARD=True) + GPy.kern.White(2)
     kernel = GPy.kern.RBF(input_dim=2, variance=1)
     m = GPy.models.GPRegression(X,Y,kernel)
