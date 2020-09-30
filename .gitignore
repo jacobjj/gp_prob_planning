@@ -5,6 +5,7 @@
 bullet3/**
 python-fcl/**
 sparse_rrt/**
+dccp/**
 
 # Untrack personal folders
 data/**
