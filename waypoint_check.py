@@ -35,7 +35,11 @@ ax[0].set_ylim((-0.2, 10.2))
 dimensions = [box_length, box_width]
 rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
 
-for xy_i in xy:
+for xy_i in point.xy_circle:
+    plt_cir = plt.Circle(xy_i, radius=0.2, color='r')
+    ax[0].add_patch(plt_cir)
+
+for xy_i in point.xy:
     plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r')
     ax[0].add_patch(plt_box)
 
