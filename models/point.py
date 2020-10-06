@@ -4,6 +4,8 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 
+np.random.seed(5)
+
 # physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 physicsClient = p.connect(p.DIRECT)
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
