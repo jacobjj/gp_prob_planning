@@ -26,6 +26,8 @@ def get_model(robot, obstacles, model):
         p.resetBasePositionAndOrientation(robot, np.r_[X[i, :], 0.1], robotOrientation)
         Y[i] = model.get_distance(obstacles, robot)
 
+    # Add noise to the distance measure
+    Y = Y + np.random.normal(scale=1e-3,size=(samples,1))
     # kernel = GPy.kern.Matern52(2,ARD=True) + GPy.kern.White(2)
     kernel = GPy.kern.RBF(input_dim=2, variance=1)
     m = GPy.models.GPRegression(X,Y,kernel)
@@ -52,6 +54,26 @@ def return_collision_prob(x_mu, x_sigma, u, m, A, B):
     x_t_1 = A@x_t.T + (B@u)[:, None]
     f_x_t_1_mu, f_x_t_1_sigma = m.predict(x_t_1.T)
     return np.mean(stats.norm.cdf(-f_x_t_1_mu/np.sqrt(f_x_t_1_sigma)))
+
+def return_collision_deterministic_line(x_mu, x_sigma, u, m, A, B):
+    '''
+    Return the minimum value of mu/(sqrt(2)*sigma) for the GP, along the 
+    trajectory of the control input.
+    :param x_mu: The mean of the initial state
+    :param x_sigma: The variance of the input state
+    :param u: The control input
+    :param m: The GP model of the obstacles
+    :param A,B: The parameters of the LTI system. x_t_1 = Ax_t + B_u
+    :return float: The maximum value along the trajectory with input u.
+    '''
+    assert x_mu.shape[0]==3,"The dimension of axis 1 has to be 3"
+    assert u.shape[0] == 3, "The control input axis 1 has to be 3"
+    x_mu_t_1 = A@x_mu + B@u
+    alpha = np.linspace(0,1,100)
+    traj = (1-alpha)*x_mu[:,None] + alpha*x_mu_t_1[:,None]
+    f_mu, f_sigma = m.predict(traj[:2,:].T, kern=m.kern)
+    # import pdb; pdb.set_trace()
+    return min(f_mu/(np.sqrt(2*f_sigma)))
 
 def return_collision_prob_line(x_mu, x_sigma, u, m, A, B):
     '''

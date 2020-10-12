@@ -5,16 +5,23 @@ import GPy
 import numpy as np
 import pybullet as p
 from scipy import stats
-
+from scipy import optimize
 from sparse_rrt.systems.system_interface import BaseSystem
 
 from models import point
 from gp_model import get_model, return_collision_prob, return_collision_prob_line
+from gp_model import return_collision_deterministic_line
 
 obstacles, robot = point.set_env()
 
 # Define gaussian model
 m = get_model(robot, obstacles, point)
+true_K = m.kern.K(m.X)
+prior_var = 1e-6
+K_inv = np.linalg.inv(true_K+np.eye(true_K.shape[0])*prior_var)
+weights = K_inv@m.Y
+k_x_x = m.kern.K(np.c_[0,0])
+
 # Define LTI system
 A,B = point.get_dyn()
 
@@ -45,23 +52,60 @@ class FreeDisc(BaseSystem):
 
     def __init__(self, ProbabilityThreshold):
         self.ProbabilityThreshold = ProbabilityThreshold
+        N = stats.norm(scale=np.sqrt(1/2))
+        self.c = N.ppf(1-ProbabilityThreshold)
         super().__init__()
+
 
     def propagate(self, start_state, control, num_steps, integration_step):
         '''
-        Propogates the robot forward and checks probabilistic collision.
+        Propogates the robot forward and checks probabilistic collision by
+        using deterministic bounds.
         :param start_state: numpy array with the start state for the integration
         :param control: numpy array with constant controls to be applied during integration
         :param num_steps: number of steps to integrate
         :param integration_step: dt of integration
         :return: new state of the system if valid or return None
         '''
+        # TODO: 1. To check collision using the constraints equations
         x_mu = start_state[:3]
         x_sigma = start_state[3:].reshape((3,3))
         control = control*num_steps
-        collision_prob = return_collision_prob_line(x_mu, x_sigma,  control, m, A, B)
-        if collision_prob>self.ProbabilityThreshold:
+
+        def G(x, *args):
+            '''
+            The ratio of mean by variance function.
+            :param x: the state of the robot
+            :returns float: E[g(x)]/sqrt(2var(g(x)))
+            '''
+            if x.ndim!=m.X.ndim:
+                x = x[None, :]
+            k_star = m.kern.K(x, m.X)
+            var = k_x_x - k_star@K_inv@k_star.T
+            return (k_star@weights/np.sqrt(2*var))[0]
+
+        r0 = np.linalg.norm(A@x_mu.T+B@control)
+        ri = r0*(np.exp(integration_step)-1)
+        state_min, state_max = x_mu -ri, x_mu + ri
+        sol = optimize.shgo(
+            G,
+            bounds = [(state_min[0], state_max[0]),(state_min[1], state_max[1])],
+            constraints = [
+                 {
+                     'type':'ineq',
+                     'fun': lambda x: ri - np.linalg.norm(x-x_mu[:2]),
+                     'jac': lambda x: -(x-x_mu[:2])
+                 }
+            ]
+        )
+        if sol.fun<=self.c:
             return None
+
+        # # Check empherically the safety criteria
+        # c_hat = return_collision_deterministic_line(x_mu, x_sigma, control, m, A, B)
+        # if c_hat<=self.c:
+        #     return None
+
         x_t_1_mu = A@x_mu.T + (B@control)
         # check if bounds are reached
         if all(x_t_1_mu>=[10.1]*3) or all(x_t_1_mu<=[-0.1]*3):
@@ -164,7 +208,7 @@ from sparse_rrt.experiments.experiment_utils import run_config
 config = dict(
     system = system,
     number_of_iterations=5000,
-    integration_step=1.0,
+    integration_step=0.1,
     min_time_steps=1.0,
     max_time_steps=2.0,
     start_state = np.r_[start_state, np.eye(3).ravel()*0.1],
