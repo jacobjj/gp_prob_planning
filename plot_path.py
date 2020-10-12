@@ -7,6 +7,13 @@ import seaborn as sns
 
 import pickle
 
+from models import point
+
+# TODO: Find a way to ensure that both environments used for 
+# TODO: generating the path and plotting are the same.
+# Set up the environment
+A, B = point.set_env()
+
 # Plot the obstacles
 fig, ax = plt.subplots(figsize=(10,10))
 sns.set()
@@ -17,7 +24,11 @@ ax.set_ylim((-0.2, 10.2))
 dimensions = [box_length, box_width]
 rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
 
-for xy_i in xy:
+for xy_i in point.xy_circle:
+    plt_cir = plt.Circle(xy_i, radius=0.2, color='r')
+    ax.add_patch(plt_cir)
+
+for xy_i in point.xy:
     plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r')
     ax.add_patch(plt_box)
 
