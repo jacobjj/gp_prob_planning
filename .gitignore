@@ -1,10 +1,11 @@
 # Untrack pycache
-__pycache__/**
+**/__pycache__/**
 
 # Untrack package folders
 bullet3/**
 python-fcl/**
 sparse_rrt/**
+dccp/**
 
 # Untrack personal folders
 data/**
