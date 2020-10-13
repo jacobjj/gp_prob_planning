@@ -50,3 +50,26 @@ si = ob.SpaceInformation(space)
 # Set the  MotionValidator
 motion_validator = check_motion(si)
 si.setMotionValidator(motion_validator)
+
+# Create a simple setup
+ss = og.SimpleSetup(si)
+
+# Define the start and goal location
+start = ob.State(space)
+start[0] = 0.0
+start[1] = 0.0
+goal = ob.State(space)
+goal[0] = 1.0
+goal[1] = 1.0
+
+# Set the start and goal states:
+ss.setStartAndGoalStates(start, goal)
+
+# define the planner
+planner = og.RRT(si)
+ss.setPlanner(planner)
+
+# Attempt to solve within the given time
+solved = ss.solve(10.0)
+if solved:
+    print("Found solution")
