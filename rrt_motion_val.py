@@ -75,7 +75,7 @@ class check_motion(ob.MotionValidator):
         '''
         super(check_motion, self).__init__(spaceInformation)
 
-    def checkMotion(self, start, state2):
+    def checkMotion(self, start, goal):
         '''
         Check if there exists a valid motion between start and state2, that
         satisfies the given constraints.
@@ -83,15 +83,22 @@ class check_motion(ob.MotionValidator):
         :param goal: an object of type og.State , representing the goal state.
         :returns bool: True if there exists a path between start and goal.
         '''
-        return True
+        # assert isinstance(start, ob.State), "Start has to be of ob.State"
+        # assert isinstance(goal, ob.State), "Goal has t obe of ob.State"
+        G = get_GP_G(np.c_[start.getX(), start.getY()], np.c_[goal.getX(), goal.getY()])
+        sol = optimize.shgo(G, bounds=[(0, 1)], iters=10)
+        if sol.success and sol.fun>c:
+            return True
+        return False
+
 
 # Define the space
 space = ob.SE2StateSpace()
 
 # Set the bounds 
 bounds = ob.RealVectorBounds(2)
-bounds.setLow(-1)
-bounds.setHigh(1)
+bounds.setLow(-0.2)
+bounds.setHigh(10)
 space.setBounds(bounds)
 
 # Define the SpaceInformation object.
@@ -109,8 +116,8 @@ start = ob.State(space)
 start[0] = 0.0
 start[1] = 0.0
 goal = ob.State(space)
-goal[0] = 1.0
-goal[1] = 1.0
+goal[0] = 9.0
+goal[1] = 9.0
 
 # Set the start and goal states:
 ss.setStartAndGoalStates(start, goal)
@@ -123,3 +130,7 @@ ss.setPlanner(planner)
 solved = ss.solve(10.0)
 if solved:
     print("Found solution")
+    path = [
+        [ss.getSolutionPath().getState(i).getX(), ss.getSolutionPath().getState(i).getY()]
+        for i in range(ss.getSolutionPath().getStateCount())
+        ] 
