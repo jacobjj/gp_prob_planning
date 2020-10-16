@@ -4,6 +4,8 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 
+from config import box_length, box_width
+
 np.random.seed(5)
 
 # physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
@@ -18,7 +20,7 @@ p.resetDebugVisualizerCamera(
     cameraPitch=-89.9, 
     cameraTargetPosition=[5,5,0])
 
-geomBox = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.2,0.2, 0.2])
+geomBox = p.createCollisionShape(p.GEOM_BOX, halfExtents=[box_length/2, box_width/2, 0.2])
 geomCircle = p.createCollisionShape(p.GEOM_CYLINDER, radius=0.2, height = 0.2)
 geomRobot = p.createCollisionShape(p.GEOM_CYLINDER, radius=0.1, height=0.2)
 # Initialize the position of obstacles
