@@ -18,7 +18,7 @@ def get_model(robot, obstacles, model):
     :returns GPy.models.GPRegression model representing the obstacle space
     '''
     # Define gaussian model
-    samples = 500
+    samples = 1000
     X = np.random.rand(samples, 2)*10
     robotOrientation = p.getQuaternionFromEuler([0., 0., 0.])
     Y = np.zeros((samples, 1))
@@ -27,7 +27,7 @@ def get_model(robot, obstacles, model):
         Y[i] = model.get_distance(obstacles, robot)
 
     # Add noise to the distance measure
-    Y = Y + np.random.normal(scale=1e-3,size=(samples,1))
+    Y = Y + np.random.normal(scale=10**(-0.5),size=(samples,1))
     # kernel = GPy.kern.Matern52(2,ARD=True) + GPy.kern.White(2)
     kernel = GPy.kern.RBF(input_dim=2, variance=1)
     m = GPy.models.GPRegression(X,Y,kernel)
