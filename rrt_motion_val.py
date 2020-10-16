@@ -78,6 +78,50 @@ def get_GP_G(start, goal):
         return ((k_star@weights)/np.sqrt(2*var))[0]
     return G
 
+class ValidityChecker(ob.StateValidityChecker):
+    '''A class to check the validity of the state
+    '''
+    def isValid(self, state):
+        '''
+        Check if the given state is valid.
+        :param state: An ob.State object to be checked.
+        :returns bool: True if the state is valid. 
+        '''
+        x_hat = np.c_[state.getX(), state.getY()]
+        return self.getZscore(x_hat)>c
+
+    def getZscore(self, x):
+        '''
+        The ratio of E[f(x)]/sqrt(2*var(f(x))).
+        :param x: a numpy array of state x.
+        :return float: The value of E[f(x)]/sqrt(2*var(f(x)))
+        '''
+        k_star = m.kern.K(x, m.X)
+        var = k_x_x - k_star@K_inv@k_star.T
+        return np.squeeze((k_star@weights)/np.sqrt(2*var))
+
+
+class ValidityCheckerDistance(ob.StateValidityChecker):
+    '''A class to check the validity of the state, by checking distance function
+    '''
+    defaultOrientation = p.getQuaternionFromEuler([0., 0., 0.])
+    
+    def isValid(self, state):
+        '''
+        Check if the given state is valid.
+        :param state: An ob.STate object to be checked.
+        :return bool: True if the state is valid.
+        '''
+        return self.getDistance(state)>0
+
+    def getDistance(self, state):
+        '''
+        Get the shortest distance from robot to obstacle.
+        :param x: A numpy array of state x.
+        :returns float: The closest distance between the robot and obstacle.
+        '''
+        p.resetBasePositionAndOrientation(robot, np.r_[state.getX(), state.getY(), 0.1], self.defaultOrientation)
+        return point.get_distance(obstacles, robot)
 
 class check_motion(ob.MotionValidator):
     '''A motion validator check using chance constrained.
