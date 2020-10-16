@@ -12,7 +12,7 @@ try:
     from ompl import base as ob
     from ompl import geometric as og
 except ImportError:
-    print("Could not f  ind OMPL")
+    print("Could not find OMPL")
     raise ImportError("Run inside docker!!")
 
 # Import project specific files
@@ -32,11 +32,11 @@ m = get_model(robot, obstacles, point)
 # Define LTI system
 A, B = point.get_dyn()
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(1,2)
 sns.set()
 
-ax.set_xlim((-0.2, 10.2))
-ax.set_ylim((-0.2, 10.2))
+ax[0].set_xlim((-0.2, 10.2))
+ax[0].set_ylim((-0.2, 10.2))
 
 # Initialize the position of obstacles
 dimensions = [box_length, box_width]
@@ -44,14 +44,14 @@ rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]
 
 for xy_i in point.xy_circle:
     plt_cir = plt.Circle(xy_i, radius=0.2, color='r')
-    ax.add_patch(plt_cir)
+    ax[0].add_patch(plt_cir)
 
 for xy_i in point.xy:
     plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r')
-    ax.add_patch(plt_box)
+    ax[0].add_patch(plt_box)
 
 K = m.kern.K(m.X)
-prior_var = 1e-6
+prior_var = 1e-1
 # TODO : There is a better way to this inverse!!
 K_inv = np.linalg.inv(K+np.eye(K.shape[0])*prior_var)
 weights = K_inv@ m.Y
@@ -159,39 +159,78 @@ bounds.setLow(-0.2)
 bounds.setHigh(10)
 space.setBounds(bounds)
 
-# Define the SpaceInformation object.
-si = ob.SpaceInformation(space)
+def main(GP_check=True):
 
-# Set the  MotionValidator
-motion_validator = check_motion(si)
-si.setMotionValidator(motion_validator)
+    # Define the SpaceInformation object.
+    si = ob.SpaceInformation(space)
 
-# Create a simple setup
-ss = og.SimpleSetup(si)
+    if GP_check:
+        print("Using GP model for collision check")
+        # Set the StateValidator
+        ValidityChecker_obj = ValidityChecker(si)
 
-# Define the start and goal location
-start = ob.State(space)
-start[0] = 0.0
-start[1] = 0.0
-goal = ob.State(space)
-goal[0] = 9.0
-goal[1] = 9.0
+        # Set the MotionValidator
+        MotionValidator_obj = check_motion(si)
+        si.setMotionValidator(MotionValidator_obj)
+    else:
+        print("Using noisy distance function")
+        ValidityChecker_obj = ValidityCheckerDistance(si)
 
-# Set the start and goal states:
-ss.setStartAndGoalStates(start, goal)
+    si.setStateValidityChecker(ValidityChecker_obj)
 
-# define the planner
-planner = og.RRT(si)
-ss.setPlanner(planner)
+    # Create a simple setup
+    ss = og.SimpleSetup(si)
 
-# Attempt to solve within the given time
-solved = ss.solve(10.0)
-if solved:
-    print("Found solution")
-    path = [
-        [ss.getSolutionPath().getState(i).getX(), ss.getSolutionPath().getState(i).getY()]
-        for i in range(ss.getSolutionPath().getStateCount())
-        ]
+    # Define the start and goal location
+    start = ob.State(space)
+    start[0] = 2.0
+    start[1] = 4.0
+    goal = ob.State(space)
+    goal[0] = 9.0
+    goal[1] = 9.0
+
+    # Set the start and goal states:
+    ss.setStartAndGoalStates(start, goal)
+
+    # define the planner
+    planner = og.RRT(si)
+    ss.setPlanner(planner)
+
+    # Attempt to solve within the given time
+    solved = ss.solve(15.0)
+    if solved:
+        print("Found solution")
+        path = [
+            [ss.getSolutionPath().getState(i).getX(), ss.getSolutionPath().getState(i).getY()]
+            for i in range(ss.getSolutionPath().getStateCount())
+            ]
+    return path
+
+ax[0].scatter(2, 4, color='r', marker='x')
+ax[0].scatter(9, 9, color='g', marker='o')
+
+# Check the distance function.
+ax[1].plot([0,1], [c, c,], color='k')
+
+if __name__ == "__main__":
     
-ax.scatter(0, 0, color='r', marker='x')
-ax.scatter(0, 0, color='g', marker='o')
+    path = np.array(main(True))
+    ax[0].plot(path[:,0], path[:,1], color='b', alpha=0.5, label='With CC')
+    ax[0].scatter(path[:,0], path[:,1], color='b', alpha=0.5, label='With CC')
+
+    for j, _ in enumerate(path[:-1]):
+        G = get_GP_G(path[j][None,:], path[j+1][None,:])
+        G_samp = np.squeeze([G(a) for a in np.linspace(0, 1, 100)])
+        ax[1].plot(np.linspace(0, 1, 100), G_samp, color='b')
+
+    path = np.array(main(False))
+    ax[0].plot(path[:,0], path[:,1], alpha=0.5, color='r', label='With noisy distance')
+    ax[0].scatter(path[:,0], path[:,1], color='r', alpha=0.5, label='With noisy distance')
+
+    for j, _ in enumerate(path[:-1]):
+        G = get_GP_G(path[j][None,:], path[j+1][None,:])
+        G_samp = np.squeeze([G(a) for a in np.linspace(0, 1, 100)])
+        ax[1].plot(np.linspace(0, 1, 100), G_samp, color='r', label='noisy distance')
+
+    ax[0].legend()
+    fig.show()
