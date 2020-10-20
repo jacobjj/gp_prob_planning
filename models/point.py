@@ -21,7 +21,7 @@ p.resetDebugVisualizerCamera(
     cameraTargetPosition=[5,5,0])
 
 geomBox = p.createCollisionShape(p.GEOM_BOX, halfExtents=[box_length/2, box_width/2, 0.2])
-geomCircle = p.createCollisionShape(p.GEOM_CYLINDER, radius=cir_radius, height = 0.2)
+geomCircle = p.createCollisionShape(p.GEOM_CYLINDER, radius=cir_radius, height = 0.4)
 geomRobot = p.createCollisionShape(p.GEOM_CYLINDER, radius=0.1, height=0.2)
 # Initialize the position of obstacles
 # xy = [np.r_[2,2], np.r_[2, 8], np.r_[5,5], np.r_[8, 2], np.r_[8, 8]]
