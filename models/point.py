@@ -64,6 +64,24 @@ def set_env():
     return obstacles, robot
 
 
+def get_observations(robot):
+    '''
+    Returns the sensor observations, similar to lidar data.
+    :param robot: The robot ID
+    '''
+    num_rays = 8
+    ray_length = 1
+    robot_position, _ = p.getBasePositionAndOrientation(robot)
+    ray_from = [robot_position]*num_rays
+    ray_to  = [
+        (robot_position[0]+ray_length*np.cos(theta), robot_position[1]+ray_length*np.sin(theta), 0.1) 
+        for theta in np.linspace(0,2*np.pi, num_rays)
+        ]
+    results = p.rayTestBatch(ray_from, ray_to)
+    # return the distance to obstacle for each ray
+    return [result[2]*ray_length for result in results]
+
+
 def get_distance(obstacles, robot):
     '''
     Get the shortest distance between the obstacles and robot, for the given 
