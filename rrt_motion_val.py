@@ -76,9 +76,8 @@ def get_GP_G(start, goal):
         elif alpha>1:
             alpha = 1
         x_hat = (1-alpha)*start + alpha*goal
-        k_star = m.kern.K(x_hat, m.X)
-        var = k_x_x-k_star@K_inv@k_star.T
-        return ((k_star@weights)/np.sqrt(2*var))[0]
+        mean, var = m.predict(x_hat)
+        return (mean/np.sqrt(2*var))
     return G
 
 class ValidityChecker(ob.StateValidityChecker):
@@ -99,9 +98,8 @@ class ValidityChecker(ob.StateValidityChecker):
         :param x: a numpy array of state x.
         :return float: The value of E[f(x)]/sqrt(2*var(f(x)))
         '''
-        k_star = m.kern.K(x, m.X)
-        var = k_x_x - k_star@K_inv@k_star.T
-        return np.squeeze((k_star@weights)/np.sqrt(2*var))
+        mean, var = m.predict(x)
+        return (mean/np.sqrt(2*var))[0,0]
 
 
 class ValidityCheckerDistance(ob.StateValidityChecker):
