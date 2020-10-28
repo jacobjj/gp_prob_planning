@@ -25,7 +25,7 @@ c = N.ppf(1-thresh)
 # Define gaussian model
 m = get_model(robot, obstacles, point)
 # Define LTI system
-A,B = point.get_dyn()
+A,B, _, _ = point.get_dyn()
 
 fig,ax = plt.subplots(1,2)
 sns.set()

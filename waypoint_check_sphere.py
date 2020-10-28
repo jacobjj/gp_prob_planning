@@ -26,7 +26,7 @@ c = N.ppf(1-thresh)
 # Define gaussian model
 m = get_model(robot, obstacles, point)
 # Define LTI system
-A,B = point.get_dyn()
+A,B,_, _ = point.get_dyn()
 
 # Define bound for trajectory
 L = np.linalg.norm(A)

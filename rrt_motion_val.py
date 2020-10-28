@@ -27,6 +27,9 @@ c = N.ppf(1-thresh)
 
 obstacles, robot = point.set_env()
 
+# Define LTI system
+A, B, M, N = point.get_dyn()
+
 # Define the GP model
 m = get_model(robot, obstacles, point)
 # Define LTI system
