@@ -104,10 +104,17 @@ def get_distance(obstacles, robot):
 # Define Robot model
 def get_dyn():
     '''
-    Return the dynamics of the LTI system
+    Return the dynamics of the LTI system represented by:
+    x_t+1 = A@x_t + B@u_t + m_t, m_t ~ N(0, M)
+    z_t+1 = x_t + n_t, n_t ~ N(0,N)
+    :returns (A,B,M,N): where the parameters correspond to the above equation.
     '''
     A = np.eye(3)
     B = np.zeros((3,3))
     B[0, 0] = 2
     B[1, 1] = 2
-    return A,B
+    
+    M = np.eye(2)*1e-2 # Motion Noise
+    N = np.eye(2)*1e-3 # Observation Noise
+
+    return A, B, M, N
