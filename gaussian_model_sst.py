@@ -1,5 +1,5 @@
 # Navigation through SST
-from config import box_width, box_length, xy
+from config import box_width, box_length, xy, cir_radius
 
 import GPy
 import numpy as np
