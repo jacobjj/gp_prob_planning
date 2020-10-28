@@ -1,6 +1,6 @@
 '''Guarantee collision free path between adjacent waypoints 
 '''
-from config import box_width, box_length, xy
+from config import box_width, box_length, xy, cir_radius
 
 import GPy
 import numpy as np
@@ -38,7 +38,7 @@ dimensions = [box_length, box_width]
 rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
 
 for xy_i in point.xy_circle:
-    plt_cir = plt.Circle(xy_i, radius=0.2, color='r')
+    plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r')
     ax[0].add_patch(plt_cir)
 
 for xy_i in point.xy:
