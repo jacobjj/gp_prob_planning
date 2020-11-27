@@ -271,7 +271,8 @@ def start_experiment():
             pickle.dump(path_param, open('/root/data/path_{}.p'.format(i), 'wb'))
 
 if __name__ == "__main__":
-    
+    start_experiment()
+
     # Visualize the planning network
     visualize_network = False
     if visualize_network:
