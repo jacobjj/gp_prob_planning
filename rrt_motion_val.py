@@ -41,6 +41,12 @@ M_n = stats.multivariate_normal(cov=M)
 
 m = get_model_KF(A[:2,:2], B[:2, :2], M_n, N_n, robot, obstacles, point)
 plot_GP = False
+if plot_GP:
+    fig_GP, ax_GP = plt.subplots()
+    import GPy
+    GPy.plotting.change_plotting_library("matplotlib")
+    fig = m.plot()
+    fig_GP.show()
 
 
 def get_GP_G(start, goal):
