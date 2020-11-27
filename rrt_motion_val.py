@@ -287,23 +287,86 @@ def start_experiment():
 
 if __name__ == "__main__":
     
-    path = np.array(main(True))
-    ax[0].plot(path[:,0], path[:,1], color='b', alpha=0.5, label='With CC')
-    ax[0].scatter(path[:,0], path[:,1], color='b', alpha=0.5, label='With CC')
+    # Visualize the planning network
+    visualize_network = False
+    if visualize_network:
+        num = 0
+        # data = pickle.load(open('/root/data/path_{}.p'.format(num), 'rb'))
 
-    for j, _ in enumerate(path[:-1]):
-        G = get_GP_G(path[j][None,:], path[j+1][None,:])
-        G_samp = np.squeeze([G(a) for a in np.linspace(0, 1, 100)])
-        ax[1].plot(np.linspace(0, 1, 100), G_samp, color='b')
+        # start = ob.State(space)
+        # start[0] = data['path'][0,0]
+        # start[1] = data['path'][0,1]
 
-    path = np.array(main(False))
-    ax[0].plot(path[:,0], path[:,1], alpha=0.5, color='r', label='With noisy distance')
-    ax[0].scatter(path[:,0], path[:,1], color='r', alpha=0.5, label='With noisy distance')
+        # goal = ob.State(space)
+        # goal[0] = data['path'][-1, 0]
+        # goal[1] = data['path'][-1, 1]
 
-    for j, _ in enumerate(path[:-1]):
-        G = get_GP_G(path[j][None,:], path[j+1][None,:])
-        G_samp = np.squeeze([G(a) for a in np.linspace(0, 1, 100)])
-        ax[1].plot(np.linspace(0, 1, 100), G_samp, color='r', label='noisy distance')
+        start = ob.State(space)
+        start.random()
+        while not ValidityChecker_obj.isValid(start()):
+            start.random()
+        goal = ob.State(space)
+        goal.random()
+        while not ValidityChecker_obj.isValid(goal()):
+            goal.random()
 
-    ax[0].legend()
-    fig.show()
+        fig, ax = plt.subplots()
+        sns.set()
+
+        ax.set_xlim((-0.2, 10.2))
+        ax.set_ylim((-0.2, 10.2))
+
+        # Initialize the position of obstacles
+        dimensions = [box_length, box_width]
+        rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
+
+        for xy_i in point.xy_circle:
+            plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r')
+            ax.add_patch(plt_cir)
+
+        for xy_i in point.xy:
+            plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r')
+            ax.add_patch(plt_box)
+
+        ax.scatter(start[0], start[1], color='g')
+        ax.scatter(goal[0], goal[1], color='r')
+
+        fig.show()
+
+
+        success = False
+        # Create a simple setup
+        ss = og.SimpleSetup(si)
+
+        # Set the start and goal states:
+        ss.setStartAndGoalStates(start, goal, 0.1)
+
+        # # Use RRT
+        # planner = og.RRT(si)
+
+        # Use RRT*
+        planner = og.RRTstar(si)
+
+        ss.setPlanner(planner)
+
+        # Attempt to solve within the given time
+        time = 60
+        solved = ss.solve(60.0)
+        while not ss.haveExactSolutionPath():
+            solved = ss.solve(30.0)
+            time +=30
+            if time>600:
+                break
+        if ss.haveExactSolutionPath():
+            success = True
+            print("Found solution")
+
+        import networkx as nx
+        
+        planner_data = ob.PlannerData(si)
+        ss.getPlannerData(planner_data)
+        G = nx.parse_graphml(planner_data.printGraphML())
+        pos = nx.get_node_attributes(G, 'coords')
+        new_pos = {key:np.array(value.split(','), dtype=np.float) for key, value in pos.items()}
+
+        nx.draw_networkx(G, new_pos, ax = ax, alpha=0.5)
