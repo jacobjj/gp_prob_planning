@@ -23,7 +23,7 @@ from gp_model import get_model, get_model_KF
 from config import box_width, box_length, xy, cir_radius
 
 # Set up environment details
-thresh = 0.001
+thresh = 0.10
 N = stats.norm(scale=np.sqrt(1/2))
 c = N.ppf(1-thresh)
 
