@@ -149,7 +149,55 @@ def get_lqr(traj, C, D):
         L_list.append(L)
         SN = C + A.T@SN@A + A.T@SN@B@L 
     return L_list
-    M = np.eye(2)*1e-2 # Motion Noise
-    N = np.eye(2)*1e-3 # Observation Noise
 
-    return A, B, M, N
+
+# Noise model
+N_n = stats.multivariate_normal(cov=N)
+M_n = stats.multivariate_normal(cov=M)
+def execute_path(traj, C, D, si_check):
+    '''
+    Execute the path trajectory using LQR controller. Assumes error of P.
+    :param traj: The path to follow.
+    :param C, D: The LQR parameters
+    :param si_check: An ompl.base.SpaceInformation with a valid collision checker.
+    :returns (estimated state, real state, valid): A tuple containing the estimated state 
+    and real state of the robot, and whether the path was completed or not.
+    '''
+    # Define the parameters for the path.
+    ompl_path_obj = og.PathGeometric(si_check)
+    state_temp = ob.State(si_check.getStateSpace())
+    start = traj[0]
+    goal = traj[-1]
+
+    P = np.eye(2)*1e-1
+    L_list = get_lqr(traj, C, D)
+    x = np.r_[start[0], start[1]] + stats.multivariate_normal(cov = P).rvs()
+    x_real = x
+    state_temp[0], state_temp[1] = x[0], x[1]
+    ompl_path_obj.append(state_temp())
+    path_est = [x]
+    path_noisy = [x]
+    done = False
+    for i,T in enumerate(zip(traj[:-1], reversed(L_list))):
+        x_t, L = T
+        delta_c = L@(x_real-x_t)
+        c = np.linalg.inv(B)@(traj[i+1]-A@x_t) + delta_c
+        x_real = A@x_real + B@c + M_n.rvs()
+        state_temp[0], state_temp[1] = x_real[0], x_real[1]
+        ompl_path_obj.append(state_temp())
+
+        z_real = x_real + N_n.rvs()
+        x, P  = x_hat(x, c, z_real, P)
+        path_est.append(x)
+        path_noisy.append(x_real)
+        # Check if goal is reached
+        if np.linalg.norm(x-np.r_[goal[0], goal[1]])<0.5:
+            done = True
+            print("Reached Goal")
+            break
+        if not ompl_path_obj.check():
+            print("Path in Collision")
+            done = False
+            break
+
+    return path_est, path_noisy, done
