@@ -17,7 +17,7 @@ except ImportError:
 
 # Import project specific files
 from models import point
-from gp_model import get_model
+from gp_model import get_model, get_model_KF
 from config import box_width, box_length, xy, cir_radius
 
 # Set up environment details
@@ -30,13 +30,15 @@ obstacles, robot = point.set_env()
 # Define LTI system
 A, B, M, N = point.get_dyn()
 
-# Define the GP model
-m = get_model(robot, obstacles, point)
-# Define LTI system
-A, B = point.get_dyn()
+# # Define the GP model
+# m = get_model(robot, obstacles, point)
+# Define the GP model using state-estimation
+# Noise model
+N_n = stats.multivariate_normal(cov=N)
+M_n = stats.multivariate_normal(cov=M)
 
-fig, ax = plt.subplots(1,2)
-sns.set()
+m = get_model_KF(A[:2,:2], B[:2, :2], M_n, N_n, robot, obstacles, point)
+plot_GP = False
 
 ax[0].set_xlim((-0.2, 10.2))
 ax[0].set_ylim((-0.2, 10.2))
