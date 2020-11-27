@@ -160,55 +160,74 @@ bounds.setLow(-0.2)
 bounds.setHigh(10)
 space.setBounds(bounds)
 
-def main(GP_check=True):
+# Define the SpaceInformation object.
+si = ob.SpaceInformation(space)
 
-    # Define the SpaceInformation object.
-    si = ob.SpaceInformation(space)
+GP_check = True
+if GP_check:
+    print("Using GP model for collision check")
+    # Set the StateValidator
+    ValidityChecker_obj = ValidityChecker(si)
 
-    if GP_check:
-        print("Using GP model for collision check")
-        # Set the StateValidator
-        ValidityChecker_obj = ValidityChecker(si)
+    # Set the MotionValidator
+    MotionValidator_obj = check_motion(si)
+    si.setMotionValidator(MotionValidator_obj)
+else:
+    print("Using noisy distance function")
+    ValidityChecker_obj = ValidityCheckerDistance(si)
 
-        # Set the MotionValidator
-        MotionValidator_obj = check_motion(si)
-        si.setMotionValidator(MotionValidator_obj)
-    else:
-        print("Using noisy distance function")
-        ValidityChecker_obj = ValidityCheckerDistance(si)
+si.setStateValidityChecker(ValidityChecker_obj)
 
-    si.setStateValidityChecker(ValidityChecker_obj)
-
+def get_path(start, goal):
+    '''
+    Get a RRT path from start and goal.
+    :param start: og.State object.
+    :param goal: og.State object.
+    returns (np.array, np.array, success): A tuple of numpy arrays of a valid path,  
+    interpolated path and whether the plan was successful or not.
+    '''
+    success = False
     # Create a simple setup
     ss = og.SimpleSetup(si)
 
-    # Define the start and goal location
-    start = ob.State(space)
-    start[0] = 2.0
-    start[1] = 4.0
-    goal = ob.State(space)
-    goal[0] = 9.0
-    goal[1] = 9.0
-
     # Set the start and goal states:
-    ss.setStartAndGoalStates(start, goal)
+    ss.setStartAndGoalStates(start, goal, 0.1)
 
-    # define the planner
+    # Use RRT
     planner = og.RRT(si)
+    # planner.setRange(0.5)
+    # # Use RRT*
+    # planner = og.RRTstar(si)
+
     ss.setPlanner(planner)
 
     # Attempt to solve within the given time
-    solved = ss.solve(15.0)
-    if solved:
+    time = 60
+    solved = ss.solve(60.0)
+    while not ss.haveExactSolutionPath():
+        solved = ss.solve(30.0)
+        time +=30
+        if time>600:
+            break
+    if ss.haveExactSolutionPath():
+        success = True
         print("Found solution")
         path = [
             [ss.getSolutionPath().getState(i)[0], ss.getSolutionPath().getState(i)[1]]
             for i in range(ss.getSolutionPath().getStateCount())
             ]
-    return path
+        # Define path
+        ss.getSolutionPath().interpolate(100)
+        path_obj = ss.getSolutionPath()
+        path_interpolated = np.array([
+            [path_obj.getState(i)[0], path_obj.getState(i)[1]] 
+            for i in range(path_obj.getStateCount())
+            ])
+    else:
+        path = [[start[0], start[1]], [goal[0], goal[1]]]
+        path_interpolated = []
 
-ax[0].scatter(2, 4, color='r', marker='x')
-ax[0].scatter(9, 9, color='g', marker='o')
+    return np.array(path), np.array(path_interpolated), success
 
 # Check the distance function.
 ax[1].plot([0,1], [c, c,], color='k')
