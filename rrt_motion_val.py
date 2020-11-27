@@ -330,10 +330,6 @@ if __name__ == "__main__":
 
         ax.scatter(start[0], start[1], color='g')
         ax.scatter(goal[0], goal[1], color='r')
-
-        fig.show()
-
-
         success = False
         # Create a simple setup
         ss = og.SimpleSetup(si)
@@ -370,6 +366,7 @@ if __name__ == "__main__":
         new_pos = {key:np.array(value.split(','), dtype=np.float) for key, value in pos.items()}
 
         nx.draw_networkx(G, new_pos, ax = ax, alpha=0.5)
+        fig.show()
 
     visualize_paths = False
     if visualize_paths:
