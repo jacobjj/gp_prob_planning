@@ -8,6 +8,8 @@ from scipy import stats, optimize
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import pickle
+
 try:
     from ompl import base as ob
     from ompl import geometric as og
@@ -231,8 +233,57 @@ def get_path(start, goal):
 
     return np.array(path), np.array(path_interpolated), success
 
-# Check the distance function.
-ax[1].plot([0,1], [c, c,], color='k')
+# LQG parameter:
+C = np.eye(2)
+D = np.eye(2)
+
+def start_experiment():
+    '''
+    Run the RRT experiment for 100 start and goal points for the same map
+    '''
+    for i in range(0, 40):
+        path_param = {}
+
+        data = pickle.load(open('/root/data/path_{}.p'.format(i), 'rb'))
+
+        start = ob.State(space)
+        start[0] = data['path'][0,0]
+        start[1] = data['path'][0,1]
+
+        goal = ob.State(space)
+        goal[0] = data['path'][-1, 0]
+        goal[1] = data['path'][-1, 1]
+
+        # # # Define the start and goal location
+        # start = ob.State(space)
+        # start.random()
+        # while not ValidityChecker_obj.isValid(start()):
+        #     start.random()
+        # goal = ob.State(space)
+        # goal.random()
+        # while not ValidityChecker_obj.isValid(goal()):   
+        #     goal.random()
+
+        if not data['success']:
+            path, path_interpolated, success = get_path(start, goal)
+            if success:
+                path_param['path'] = path
+                path_param['path_interpolated'] = path_interpolated
+                path_param['success'] = success
+
+            # Evaluate 100 paths
+            accuracy = 0
+            if success:
+                si_check = ob.SpaceInformation(space)
+                ValidityChecker_dis_obj = ValidityCheckerDistance(si_check)
+                si_check.setStateValidityChecker(ValidityChecker_dis_obj)
+                for _ in range(100):
+                    _, _, done = point.execute_path(path_interpolated, C, D, si_check)
+                    if done:
+                        accuracy += 1
+            path_param['accuracy'] = accuracy
+
+            pickle.dump(path_param, open('/root/data/path_{}.p'.format(i), 'wb'))
 
 if __name__ == "__main__":
     
