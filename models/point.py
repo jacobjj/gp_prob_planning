@@ -4,6 +4,15 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 
+try:
+    from ompl import base as ob
+    from ompl import geometric as og
+except ImportError:
+    print("Could not find OMPL")
+    print("execute_path() will not work!!")
+
+from scipy import stats
+
 from config import box_length, box_width, cir_radius
 
 np.random.seed(5)
