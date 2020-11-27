@@ -370,3 +370,38 @@ if __name__ == "__main__":
         new_pos = {key:np.array(value.split(','), dtype=np.float) for key, value in pos.items()}
 
         nx.draw_networkx(G, new_pos, ax = ax, alpha=0.5)
+
+    visualize_paths = False
+    if visualize_paths:
+        fig, ax = plt.subplots()
+        sns.set()
+
+        ax.set_xlim((-0.2, 10.2))
+        ax.set_ylim((-0.2, 10.2))
+
+        # Initialize the position of obstacles
+        dimensions = [box_length, box_width]
+        rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
+
+        for xy_i in point.xy_circle:
+            plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r')
+            ax.add_patch(plt_cir)
+
+        for xy_i in point.xy:
+            plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r')
+            ax.add_patch(plt_box)
+            
+        total_success = 0
+        for i in range(40):
+            data = pickle.load(open('/root/data/path_{}.p'.format(i),'rb'))
+            path = data['path']
+            path_interpolated = data['path_interpolated']
+            total_success += int(data['success'])
+
+            ax.scatter(path[0, 0], path[0, 1], color='r', marker='x')
+            ax.scatter(path[-1, 0], path[-1, 1], color='g', marker='o')
+
+            if path!=[]:
+                ax.plot(path[:,0], path[:,1], color='b', alpha=0.5)
+                ax.scatter(path[:,0], path[:,1], color='b', alpha=0.5)
+                temp = path.shape[0]-1
