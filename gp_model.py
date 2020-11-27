@@ -18,6 +18,7 @@ def get_model(robot, obstacles, model):
     :returns GPy.models.GPRegression model representing the obstacle space
     '''
     # Define gaussian model
+    print("Using model from sampled distance points")
     samples = 1000
     X = np.random.rand(samples, 2)*10
     robotOrientation = p.getQuaternionFromEuler([0., 0., 0.])
