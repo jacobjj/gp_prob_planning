@@ -102,6 +102,11 @@ def get_distance(obstacles, robot):
     return distance
 
 # Define Robot model
+A = np.eye(2)
+B = np.eye(2)
+
+M = np.eye(2)*1e-2 # Motion Noise
+N = np.eye(2)*1e-3 # Observation Noise
 def get_dyn():
     '''
     Return the dynamics of the LTI system represented by:
@@ -109,11 +114,41 @@ def get_dyn():
     z_t+1 = x_t + n_t, n_t ~ N(0,N)
     :returns (A,B,M,N): where the parameters correspond to the above equation.
     '''
-    A = np.eye(3)
-    B = np.zeros((3,3))
-    B[0, 0] = 2
-    B[1, 1] = 2
-    
+    return A, B, M, N
+
+# KF state-estimator
+def x_hat( x_est, control, obs, P):
+    '''
+    :param x_est: The previous state estimate
+    :param control: The current control
+    :param obs: The current observatoin
+    :returns tuple: A tuple of the current state estimate and Covariance matrix
+    '''
+    x_bar = A@x_est + B@control
+    P_bar = A@P@A.T + M
+    K = P_bar@np.linalg.inv(P_bar+N)
+    x_est = x_bar + K@(obs-x_bar)
+    P = (np.eye(2)-K)@P_bar
+    return x_est, P
+
+
+def get_lqr(traj, C, D):
+    '''
+    Returns the LQR gains for a finite horizon system.
+    :param traj: The trajectory to be followed.
+    :param C : The cost for state.
+    :param D : The cost for control.
+    :return list: A list of LQR gains
+    '''
+    # Get LQR gains
+    SN = C
+    L_list = []
+    # Evaluate L from the end
+    for _ in traj[:-1]:
+        L = -np.linalg.inv(B.T@SN@B+D)@B.T@SN@A 
+        L_list.append(L)
+        SN = C + A.T@SN@A + A.T@SN@B@L 
+    return L_list
     M = np.eye(2)*1e-2 # Motion Noise
     N = np.eye(2)*1e-3 # Observation Noise
 
