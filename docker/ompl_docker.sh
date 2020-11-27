@@ -7,5 +7,6 @@ docker run -it \
     -v $XAUTH:/root/.Xauthority \
     -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
     -v /home/jacoblab/prob_planning/:/root/prob_planning \
+    -v /home/jacoblab/prob_planning_data:/root/data \
     ompl-pybullet \
     bash
