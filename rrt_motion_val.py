@@ -89,7 +89,7 @@ class ValidityChecker(ob.StateValidityChecker):
         :param state: An ob.State object to be checked.
         :returns bool: True if the state is valid. 
         '''
-        x_hat = np.c_[state.getX(), state.getY()]
+        x_hat = np.c_[state[0], state[1]]
         return self.getZscore(x_hat)>c
 
     def getZscore(self, x):
@@ -121,7 +121,7 @@ class ValidityCheckerDistance(ob.StateValidityChecker):
         :param x: A numpy array of state x.
         :returns float: The closest distance between the robot and obstacle.
         '''
-        p.resetBasePositionAndOrientation(robot, np.r_[state.getX(), state.getY(), 0.1], self.defaultOrientation)
+        p.resetBasePositionAndOrientation(robot, np.r_[state[0], state[1], 0.1], self.defaultOrientation)
         return point.get_distance(obstacles, robot)
 
 class check_motion(ob.MotionValidator):
@@ -144,7 +144,7 @@ class check_motion(ob.MotionValidator):
         '''
         # assert isinstance(start, ob.State), "Start has to be of ob.State"
         # assert isinstance(goal, ob.State), "Goal has t obe of ob.State"
-        G = get_GP_G(np.c_[start.getX(), start.getY()], np.c_[goal.getX(), goal.getY()])
+        G = get_GP_G(np.c_[start[0], start[1]], np.c_[goal[0], goal[1]])
         sol = optimize.shgo(G, bounds=[(0, 1)], iters=10)
         if sol.success and sol.fun>c:
             return True
@@ -152,7 +152,7 @@ class check_motion(ob.MotionValidator):
 
 
 # Define the space
-space = ob.SE2StateSpace()
+space = ob.RealVectorStateSpace(2)
 
 # Set the bounds 
 bounds = ob.RealVectorBounds(2)
@@ -202,7 +202,7 @@ def main(GP_check=True):
     if solved:
         print("Found solution")
         path = [
-            [ss.getSolutionPath().getState(i).getX(), ss.getSolutionPath().getState(i).getY()]
+            [ss.getSolutionPath().getState(i)[0], ss.getSolutionPath().getState(i)[1]]
             for i in range(ss.getSolutionPath().getStateCount())
             ]
     return path
