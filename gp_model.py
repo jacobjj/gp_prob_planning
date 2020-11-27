@@ -34,6 +34,125 @@ def get_model(robot, obstacles, model):
     m.optimize()
     return m
 
+def get_path(A, B, M_n, N_n, step_size=10):
+    '''
+    Returns a random walk path with step_size, along with noisy
+    observations.
+    :param A,B : The linear state of the model
+    :param N_n: A scipy.stats random variable representing the observation noise
+    :param M_n: A scipy.stats random variable representing the motion noise
+    :param step_size: Number of integer steps
+    :returns tuple: A tuple with a list of (true_states, observations)
+    '''
+    x = np.random.rand(2)*10
+    path = [x]
+    obs = [x+N_n.rvs()]
+    control = []
+    steps = 0 
+    while steps<step_size:
+        u = np.random.rand(2)*1.5 - 0.75
+        x_temp = A@x + B@u + M_n.rvs()
+        if any(x_temp>=10) or any(x_temp<=0):
+            continue
+        x = x_temp
+        steps+=1
+        path.append(x)
+        obs.append(x+N_n.rvs())
+        control.append(u)
+    return path, control, obs
+
+def get_state_est(A, B, M, N):
+    '''
+    Return a function to estimate the state using KF.
+    :param A, B : The linear parameters of the motion model  
+    :param M, N : The motion and observation uncertainty. 
+    :returns func: A function to evaluate the state estimate
+    ''' 
+    # TODO: The P should be a parameter
+    def x_hat( x_est, control, obs, P):
+        '''
+        :param x_est: The previous state estimate
+        :param control: The current control
+        :param obs: The current observatoin
+        :returns tuple: A tuple of the current state estimate and Covariance matrix
+        '''
+        x_bar = A@x_est + B@control
+        P_bar = A@P@A.T + M
+        K = P_bar@np.linalg.inv(P_bar+N)
+        x_est = x_bar + K@(obs-x_bar)
+        P = (np.eye(2)-K)@P_bar
+        return x_est, P
+    return x_hat
+
+
+def get_path_est(A, B, M, N, path, control, obs):
+    '''
+    Get the path estimate using Kalman-filter
+    :param A,B : The linear Co-efficient of motion model.
+    :param M: The covariance matrix of motion noise model
+    :param N: The covariance matrix of observation noise model
+    :param path: A list of states representing a path.
+    :param control: A list of control's sequence
+    :param obs: A sequence of observation points.
+    '''
+    P = np.eye(2)*1e-1
+    x_est = path[0]
+    path_est = [x_est]
+    x_hat = get_state_est(A, B, M, N)
+    for c,obs in zip(control, obs):
+        x_est, P = x_hat(x_est, c, obs, P)
+        path_est.append(x_est)
+    return path_est
+
+
+def get_model_KF(A, B, M_n, N_n, robot, obstacles, model):
+    '''
+    Getting the GP model using the KF.
+    :param A,B : The linear state of the model
+    :param N_n: A scipy.stats random variable representing the obeservation noise
+    :param M_n: A scipy.stats random variable representing the motion noise
+    :param robot: pybullet.MultiBody object representing the robot
+    :param obstacles: pybullet.MultiBody object representing the obstacles in the environment
+    :param model: custom function found in folder "models" of the dynamic system
+    :returns GPy.models.GPRegression model representing the obstacle space
+    '''
+    try:
+        X = np.load('X.npy')
+        Y = np.load('Y.npy')
+        print("Loading data for map")
+    except FileNotFoundError:
+        print("Could not find data, gathering data")
+        X = np.array([[0.0, 0.0]])
+        Y = np.array([0.0])
+        robotOrientation = (0.0, 0.0, 0.0, 1.0)
+        for _ in range(5):
+            path, control, obs = get_path(A, B, M_n, N_n, step_size=1000)
+            path_est = get_path_est(A, B, M_n.cov, N_n.cov, path, control, obs)
+            Y_temp = []
+            for path_i in path:
+                p.resetBasePositionAndOrientation(robot, np.r_[path_i, 0.1], robotOrientation)
+                Y_temp.append(model.get_distance(obstacles, robot))
+            Y = np.r_[Y, Y_temp]
+            X = np.r_[X, np.array(path_est)]
+        np.save("X.npy", X)
+        np.save("Y.npy", Y)
+
+    print("Using model from state-estimated points")
+    kernel = GPy.kern.RBF(input_dim=2, variance=1)
+    try:
+        # Ignore the first row, since it is just filler values.
+        m = GPy.models.GPRegression(X[1:,:], Y[1:,None], kernel)
+        m.update_model(False)
+        m.initialize_parameter()
+        m[:] = np.load('env_5_param.npy')
+        print("Loading saved model")
+        m.update_model(True)
+    except FileNotFoundError:
+        print("Could not find trained model")
+        m = GPy.models.GPRegression(X[1:,:], Y[1:,None], kernel)
+        m.optimize()
+        np.save('env_5_param.npy', m.param_array)
+    return m
 
 def return_collision_prob(x_mu, x_sigma, u, m, A, B):
     '''
