@@ -42,27 +42,6 @@ M_n = stats.multivariate_normal(cov=M)
 m = get_model_KF(A[:2,:2], B[:2, :2], M_n, N_n, robot, obstacles, point)
 plot_GP = False
 
-ax[0].set_xlim((-0.2, 10.2))
-ax[0].set_ylim((-0.2, 10.2))
-
-# Initialize the position of obstacles
-dimensions = [box_length, box_width]
-rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
-
-for xy_i in point.xy_circle:
-    plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r')
-    ax[0].add_patch(plt_cir)
-
-for xy_i in point.xy:
-    plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r')
-    ax[0].add_patch(plt_box)
-
-K = m.kern.K(m.X)
-prior_var = 1e-1
-# TODO : There is a better way to this inverse!!
-K_inv = np.linalg.inv(K+np.eye(K.shape[0])*prior_var)
-weights = K_inv@ m.Y
-k_x_x = m.kern.K(np.c_[0,0])
 
 def get_GP_G(start, goal):
     '''
