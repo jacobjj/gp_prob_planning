@@ -11,3 +11,4 @@ dccp/**
 data/**
 jupyter_ws/**
 .vscode/**
+**/*.npy
