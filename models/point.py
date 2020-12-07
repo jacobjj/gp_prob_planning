@@ -36,12 +36,12 @@ geomRobot = p.createCollisionShape(p.GEOM_CYLINDER, radius=0.1, height=0.2)
 # xy = [np.r_[2,2], np.r_[2, 8], np.r_[5,5], np.r_[8, 2], np.r_[8, 8]]
 
 # Randomly generate boxes
-num_boxes = 10
-xy = np.random.rand(num_boxes, 2)*8.5 + 0.5
+num_boxes = 12
+xy = np.random.rand(num_boxes, 2)*9 + 0.5
 
 # Randomly generate circles
-num_circles = 10
-xy_circle = np.random.rand(num_circles, 2)*8.5 + 0.5
+num_circles = 3
+xy_circle = np.random.rand(num_circles, 2)*9 + 0.5
 
 def set_env():
     '''
