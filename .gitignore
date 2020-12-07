@@ -11,4 +11,7 @@ dccp/**
 data/**
 jupyter_ws/**
 .vscode/**
+
+# Untrack data files
 **/*.npy
+**/*.p
