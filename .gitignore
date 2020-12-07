@@ -17,4 +17,5 @@ jupyter_ws/**
 **/*.p
 
 # Untrack ipy checkpoints
+PlotVar.ipynb
 **/*.ipynb_checkpoints/
