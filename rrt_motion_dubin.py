@@ -169,7 +169,7 @@ def evaluate_path():
         accuracy = 0
         if path_param['success']:
             for _ in range(100):
-                done = racecar.execute_path(path_param['path_interpolated'], obstacles)
+                done = racecar.execute_path(car, path_param['path_interpolated'], obstacles)
                 if done:
                     accuracy += 1
         path_param['accuracy'] = accuracy
@@ -181,7 +181,7 @@ if __name__=="__main__":
     # start_experiment()
     # evaluate_path()
     # path_param = pickle.load(open('/root/data/dubins/path_0.p', 'rb'))
-    # done = racecar.execute_path(path_param['path_interpolated'], obstacles)
+    # done = racecar.execute_path(car, path_param['path_interpolated'], obstacles)
 
     fig, ax = plt.subplots()
 
@@ -227,7 +227,7 @@ if __name__=="__main__":
     # fig.show()
     # fig, ax = plt.subplots()
     if True:
-        plt_objects = m.plot(ax = ax, visible_dims=np.array([0, 1]), plot_data=False, cmap='Greys')
+        plt_objects = m.plot(ax = ax, visible_dims=np.array([0, 1]), plot_data=True, cmap='Greys')
         # Get the contour plot objects
         contour = plt_objects['gpmean'][0]
         ax.clabel(contour, contour.levels, inline=True, fontsize=10)

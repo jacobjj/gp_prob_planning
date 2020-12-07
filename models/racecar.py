@@ -45,100 +45,104 @@ geomBox = p.createCollisionShape(p.GEOM_BOX, halfExtents=[box_length/2, box_widt
 geomCircle = p.createCollisionShape(p.GEOM_CYLINDER, radius=cir_radius, height = 0.4)
 geomRobot = p.createCollisionShape(p.GEOM_CYLINDER, radius=0.1, height=0.2)
 
-car = p.loadURDF("racecar/racecar_differential.urdf", [0.0, 0.0, 0.05074242991633105])  #, [0,0,2],useFixedBase=True)
 # Assuming the wheelbase of the car is the same used in MIT racecar
 wheelbase = 0.325
+# Initialize few model parameters
+steering = [0, 2]  
+wheels = [8, 15]
 
 # for i in range(p.getNumJoints(car)):
 #     print(p.getJointInfo(car, i))
-for wheel in range(p.getNumJoints(car)):
-    p.setJointMotorControl2(car, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
-    p.getJointInfo(car, wheel)
+def initialize_constraints(car):
+    '''
+    Initialize constraints for the car model.
+    :param car: The pybullet id of the car model.
+    '''
+    for wheel in range(p.getNumJoints(car)):
+        p.setJointMotorControl2(car, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
+        p.getJointInfo(car, wheel)
 
-wheels = [8, 15]
-print("----------------")
+    print("----------------")
 
-#p.setJointMotorControl2(car,10,p.VELOCITY_CONTROL,targetVelocity=1,force=10)
-c = p.createConstraint(car,
-                    9,
-                    car,
-                    11,
-                    jointType=p.JOINT_GEAR,
-                    jointAxis=[0, 1, 0],
-                    parentFramePosition=[0, 0, 0],
-                    childFramePosition=[0, 0, 0])
-p.changeConstraint(c, gearRatio=1, maxForce=10000)
+    #p.setJointMotorControl2(car,10,p.VELOCITY_CONTROL,targetVelocity=1,force=10)
+    c = p.createConstraint(car,
+                        9,
+                        car,
+                        11,
+                        jointType=p.JOINT_GEAR,
+                        jointAxis=[0, 1, 0],
+                        parentFramePosition=[0, 0, 0],
+                        childFramePosition=[0, 0, 0])
+    p.changeConstraint(c, gearRatio=1, maxForce=10000)
 
-c = p.createConstraint(car,
-                    10,
-                    car,
-                    13,
-                    jointType=p.JOINT_GEAR,
-                    jointAxis=[0, 1, 0],
-                    parentFramePosition=[0, 0, 0],
-                    childFramePosition=[0, 0, 0])
-p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+    c = p.createConstraint(car,
+                        10,
+                        car,
+                        13,
+                        jointType=p.JOINT_GEAR,
+                        jointAxis=[0, 1, 0],
+                        parentFramePosition=[0, 0, 0],
+                        childFramePosition=[0, 0, 0])
+    p.changeConstraint(c, gearRatio=-1, maxForce=10000)
 
-c = p.createConstraint(car,
-                    9,
-                    car,
-                    13,
-                    jointType=p.JOINT_GEAR,
-                    jointAxis=[0, 1, 0],
-                    parentFramePosition=[0, 0, 0],
-                    childFramePosition=[0, 0, 0])
-p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+    c = p.createConstraint(car,
+                        9,
+                        car,
+                        13,
+                        jointType=p.JOINT_GEAR,
+                        jointAxis=[0, 1, 0],
+                        parentFramePosition=[0, 0, 0],
+                        childFramePosition=[0, 0, 0])
+    p.changeConstraint(c, gearRatio=-1, maxForce=10000)
 
-c = p.createConstraint(car,
-                    16,
-                    car,
-                    18,
-                    jointType=p.JOINT_GEAR,
-                    jointAxis=[0, 1, 0],
-                    parentFramePosition=[0, 0, 0],
-                    childFramePosition=[0, 0, 0])
-p.changeConstraint(c, gearRatio=1, maxForce=10000)
+    c = p.createConstraint(car,
+                        16,
+                        car,
+                        18,
+                        jointType=p.JOINT_GEAR,
+                        jointAxis=[0, 1, 0],
+                        parentFramePosition=[0, 0, 0],
+                        childFramePosition=[0, 0, 0])
+    p.changeConstraint(c, gearRatio=1, maxForce=10000)
 
-c = p.createConstraint(car,
-                    16,
-                    car,
-                    19,
-                    jointType=p.JOINT_GEAR,
-                    jointAxis=[0, 1, 0],
-                    parentFramePosition=[0, 0, 0],
-                    childFramePosition=[0, 0, 0])
-p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+    c = p.createConstraint(car,
+                        16,
+                        car,
+                        19,
+                        jointType=p.JOINT_GEAR,
+                        jointAxis=[0, 1, 0],
+                        parentFramePosition=[0, 0, 0],
+                        childFramePosition=[0, 0, 0])
+    p.changeConstraint(c, gearRatio=-1, maxForce=10000)
 
-c = p.createConstraint(car,
-                    17,
-                    car,
-                    19,
-                    jointType=p.JOINT_GEAR,
-                    jointAxis=[0, 1, 0],
-                    parentFramePosition=[0, 0, 0],
-                    childFramePosition=[0, 0, 0])
-p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+    c = p.createConstraint(car,
+                        17,
+                        car,
+                        19,
+                        jointType=p.JOINT_GEAR,
+                        jointAxis=[0, 1, 0],
+                        parentFramePosition=[0, 0, 0],
+                        childFramePosition=[0, 0, 0])
+    p.changeConstraint(c, gearRatio=-1, maxForce=10000)
 
-c = p.createConstraint(car,
-                    1,
-                    car,
-                    18,
-                    jointType=p.JOINT_GEAR,
-                    jointAxis=[0, 1, 0],
-                    parentFramePosition=[0, 0, 0],
-                    childFramePosition=[0, 0, 0])
-p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
-c = p.createConstraint(car,
-                    3,
-                    car,
-                    19,
-                    jointType=p.JOINT_GEAR,
-                    jointAxis=[0, 1, 0],
-                    parentFramePosition=[0, 0, 0],
-                    childFramePosition=[0, 0, 0])
-p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
-
-steering = [0, 2]
+    c = p.createConstraint(car,
+                        1,
+                        car,
+                        18,
+                        jointType=p.JOINT_GEAR,
+                        jointAxis=[0, 1, 0],
+                        parentFramePosition=[0, 0, 0],
+                        childFramePosition=[0, 0, 0])
+    p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
+    c = p.createConstraint(car,
+                        3,
+                        car,
+                        19,
+                        jointType=p.JOINT_GEAR,
+                        jointAxis=[0, 1, 0],
+                        parentFramePosition=[0, 0, 0],
+                        childFramePosition=[0, 0, 0])
+    p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
 
 np.random.seed(10)
 # Randomly generate boxes
@@ -149,13 +153,21 @@ xy = np.random.rand(num_boxes, 2)*9 + 0.5
 num_circles = 3
 xy_circle = np.random.rand(num_circles, 2)*9 + 0.5
 
+def set_car():
+    '''
+    A funtion to intialize a car model in the simulator.
+    '''
+    car = p.loadURDF("racecar/racecar_differential.urdf", [0.0, 0.0, 0.05074242991633105])  #, [0,0,2],useFixedBase=True)
+    initialize_constraints(car)
+    return car
+
 def set_env():
     '''
     Set the environment up with obstacles and a racecar.
     :return tuple: The pybullet ID of obstacles and robot
     '''
     print('------------------------------------')
-
+    car = set_car()
     obstacles_box = [
         p.createMultiBody(
             baseMass=0,
@@ -199,9 +211,10 @@ def reset(robot, x=0, y=0, theta=0):
         p.resetJointState(robot, steer, targetValue=0.0)
 
 # def step(targetVelocity=, steeringAngle, maxForce):
-def step(targetVelocity, steeringAngle, sliders = False):
+def step(robot, targetVelocity, steeringAngle, sliders = False):
     '''
-    Do a single step of simulation.
+    Do a single step of simulation for the robot.
+    :param robot: The car that has to take a step
     :param targetVelocity: The target velocity to the wheels.
     :param steeringAngle: The angle of the steering angle, between -1&1.
     :param sliders: Enable GUI controllers to control the car.
@@ -213,14 +226,14 @@ def step(targetVelocity, steeringAngle, sliders = False):
         steeringAngle = p.readUserDebugParameter(steeringSlider)
     
     for wheel in wheels:
-        p.setJointMotorControl2(car,
+        p.setJointMotorControl2(robot,
                                 wheel,
                                 p.VELOCITY_CONTROL,
                                 targetVelocity=targetVelocity,
                                 force=maxForce)
 
     for steer in steering:
-        p.setJointMotorControl2(car, steer, p.POSITION_CONTROL, targetPosition=-steeringAngle)
+        p.setJointMotorControl2(robot, steer, p.POSITION_CONTROL, targetPosition=-steeringAngle)
     
     if (useRealTimeSim == 0):
         p.stepSimulation()
@@ -242,7 +255,7 @@ def get_state(robot):
     vel, _ = p.getBaseVelocity(robot)
     speed = np.linalg.norm(vel[:2])
     theta = p.getEulerFromQuaternion(quat)[2]
-    phi = -p.getJointState(car, steering[0])[0]
+    phi = -p.getJointState(robot, steering[0])[0]
     return (pos[0], pos[1], theta, phi, speed)
 
 def get_noisy_state(robot):
@@ -315,14 +328,15 @@ def get_forward(x_est, control):
 
 H = np.eye(3, 5)
 
-def x_hat(x_est, control, obs, P):
+def x_hat(robot, x_est, control, obs, P):
     '''
+    :param robot: The pybullet id for the car
     :param x_est: The previous state estimate
     :param control: The current control, (steering angle)
     :param obs: The current observatoin
     :returns tuple: A tuple of the current state estimate and Covariance matrix
     '''
-    A, B, M, N = get_dyn(car)
+    A, B, M, N = get_dyn(robot)
     # Predict step
     x_bar = get_forward(x_est, control)
     J = get_jacobian(x_est, control)
@@ -422,12 +436,11 @@ def get_path(robot, obstacles, model):
     x, y, theta, _, _ = model.get_state(robot)
     x_est = np.r_[x, y, theta, 0.0, 0.0]
     est_state.append(x_est)
-    d.append(model.get_distance(obstacles, robot))
     collision = False
     for _ in range(1000):
         # Sample a random steer value
         u = (np.random.rand(1)*2-1)*np.pi/2
-        model.step(20, u)
+        model.step(robot, 20, u)
         # Get state
         x, y, theta, _, _ = model.get_state(robot)
         # Check for collision 
@@ -440,10 +453,14 @@ def get_path(robot, obstacles, model):
 
         # Get estimated state
         state, obs = model.get_noisy_state(robot)
-        x_est, P = model.x_hat(x_est, u, obs, P)
+        x_est, P = model.x_hat(robot, x_est, u, obs, P)
         est_state.append(x_est)
+    
+    # Sub-samples position.
+    est_state = est_state[::100]
+    for state_i in est_state:
+        model.reset(robot, state_i[0], state_i[1], state_i[2])
         d.append(model.get_distance(obstacles, robot))
-    est_state, d = est_state[::100], d[::100]
     if collision:
         # Sample random points
         for _ in range(5):
@@ -523,10 +540,11 @@ def pi_2_pi(angle):
     '''
     return (angle + np.pi) % (2 * np.pi) - np.pi
 
-def execute_path(traj, obstacles):
+def execute_path(robot, traj, obstacles):
     '''
     Execute the path for evaluating the quality of the path, using KF to estimate the state and 
     PD control for trajectory following.
+    :param robot: The pybullet id of the robot
     :param traj: The trajectory to follow.
     :param obstacles: The list of obstacles
     :return Bool: True if path was sucessfully completed
@@ -536,7 +554,7 @@ def execute_path(traj, obstacles):
     K = 2.
 
     reset(car, traj[0, 0], traj[0, 1], traj[0, 2])
-    x, y, theta, _, _ = get_state(car)
+    x, y, theta, _, _ = get_state(robot)
     x_est = np.r_[x, y, theta, 0.0, 0.0]
     look_ahead = 0.05
     
@@ -567,12 +585,12 @@ def execute_path(traj, obstacles):
         steering = np.clip(steering, -np.pi*0.35, np.pi*0.35)
 
         step(v, steering)
-        if any((p.getContactPoints(car, obs) for obs in obstacles)):
+        if any((p.getContactPoints(robot, obs) for obs in obstacles)):
             # print("Collision")
             break  
             
         # Estimate the state using KF
-        state, obs = get_noisy_state(car)
+        state, obs = get_noisy_state(robot)
         x_est, P = x_hat(x_est, np.r_[steering], obs, P)
         theta = x_est[2]
         num+=1
