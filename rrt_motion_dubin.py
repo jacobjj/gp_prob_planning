@@ -118,6 +118,7 @@ def get_path(start, goal):
             break
 
     if ss.haveExactSolutionPath():
+        ss.simplifySolution()
         success = True
         print("Found Solution")
         path = [
