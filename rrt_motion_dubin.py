@@ -68,7 +68,7 @@ class ValidityCheckerDistance(ob.StateValidityChecker):
             np.r_[state.getX(), state.getY(), 0.05074242991633105], 
             robotOrient
         )
-        d = robot.get_distance(obstacles, robot)
+        d = racecar.get_distance(obstacles, robot)
         return d>=0
 
 # Wheel rotation is kept at np.pi*0.35, R = wheelbase/np.sin(max_steer)
