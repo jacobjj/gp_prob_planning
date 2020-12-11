@@ -595,3 +595,121 @@ def execute_path(robot, traj, obstacles):
         theta = x_est[2]
         num+=1
     return goal_reached
+
+
+# Code for LQR control
+# NOTE: Take from https://github.com/AtsushiSakai/PythonRobotics/blob/master/PathTracking/lqr_steer_control/lqr_steer_control.py
+def solve_DARE(A, B, Q, R):
+    """
+    solve a discrete time_Algebraic Riccati equation (DARE)
+    """
+    X = Q
+    maxiter = 150
+    eps = 0.01
+
+    for i in range(maxiter):
+        Xn = A.T @ X @ A - A.T @ X @ B @ \
+            np.linalg.inv(R + B.T @ X @ B) @ B.T @ X @ A + Q
+        if (abs(Xn - X)).max() < eps:
+            break
+        X = Xn
+
+    return Xn
+
+
+def dlqr(A, B, Q, R):
+    """Solve the discrete time lqr controller.
+    x[k+1] = A x[k] + B u[k]
+    cost = sum x[k].T*Q*x[k] + u[k].T*R*u[k]
+    # ref Bertsekas, p.151
+    """
+
+    # first, try to solve the ricatti equation
+    X = solve_DARE(A, B, Q, R)
+
+    # compute the LQR gain
+    K = np.linalg.inv(B.T @ X @ B + R) @ (B.T @ X @ A)
+
+    eigVals, eigVecs = np.linalg.eig(A - B @ K)
+
+    return K, X, eigVals
+
+
+def calc_nearest_index(state, traj):
+    '''
+    Calcunp.linalgte the closest index of trajectory path.
+    '''
+    d = np.linalg.norm(state[:2] - traj[:, :2], axis=1)
+    ind = np.argmin(d)
+
+    mind = np.sqrt(d[ind])
+
+    dxl = traj[ind, 0] - state[0]
+    dyl = traj[ind, 1] - state[1]
+
+    angle = pi_2_pi(traj[ind, 2] - np.arctan2(dyl, dxl))
+    if angle < 0:
+        mind *= -1
+
+    return ind, mind
+
+
+def execute_path_LQR(robot, traj, obstacles):
+    '''
+    Execute a trajectory, using LQR controller.
+    :param robot: The pybullet id of the robot
+    :param traj: The numpy array of trajectory
+    :param obstacles: A list of pybullet id of obstacles
+    :return bool: True if the goal is reached.
+    '''
+    reset(robot, traj[0,0], traj[0,1], traj[0,2])
+    x, y, theta, _, _ =  get_state(robot)
+    x_est = np.r_[x, y, theta, 1e-3, 0.0]
+
+    goal_reached = False
+    Q = np.eye(4)*5
+    R = np.eye(1)
+    P = np.eye(5)*0
+    goal= traj[-1,:]
+    num = 0
+    while not goal_reached and num<1e4:
+        ind, e = calc_nearest_index(x_est, traj)
+        v = x_est[3]
+        phi = x_est[4]
+        theta = x_est[2]
+        A = np.array([
+            [1, 0., -v*np.sin(theta)*dt, np.cos(theta)*dt],
+            [0, 1., v*np.cos(theta)*dt, np.sin(theta)*dt],
+            [0, 0., 1., np.tan(phi)*dt/wheelbase],
+            [0, 0., 0., 1.]
+        ])
+
+        B = np.zeros((4, 1))
+        B[2, 0] = v*dt/(wheelbase*(np.cos(theta)**2+1e-2))
+
+        K, _, eigvals = dlqr(A, B, Q, R)
+
+        x = np.zeros((4, 1))
+        th_e = pi_2_pi(x_est[2] - traj[ind, 2])
+        x[0, 0] = x_est[0]-traj[ind, 0]
+        x[1, 0] = x_est[1]-traj[ind, 1]
+        x[2, 0] = th_e
+        x[3, 0] = 0#20-v
+        
+        fb = pi_2_pi((-K @ x)[0, 0])
+        delta = np.clip(fb, -np.pi*0.35, np.pi*0.35)
+        
+        # TODO : Explain why the control has to be negative??
+        step(robot, 20, -delta)
+        state, obs =  get_noisy_state(robot)
+        x_est, P =  x_hat(robot, x_est, np.r_[-delta], obs, P)
+        x, y, theta, phi, speed = get_state(robot)
+    
+        if any((p.getContactPoints(robot, obs) for obs in obstacles)):
+            # print("Collision")
+            break
+        
+        if np.linalg.norm(x_est[:2]-goal[:2])<0.25:
+            goal_reached = True
+        num+=1
+    return goal_reached
