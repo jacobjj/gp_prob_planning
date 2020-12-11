@@ -584,14 +584,14 @@ def execute_path(robot, traj, obstacles):
         steering = np.arctan2(2*wheelbase*np.sin(delta_angle/2), v) + K*delta_angle
         steering = np.clip(steering, -np.pi*0.35, np.pi*0.35)
 
-        step(v, steering)
+        step(robot, v, steering)
         if any((p.getContactPoints(robot, obs) for obs in obstacles)):
             # print("Collision")
             break  
             
         # Estimate the state using KF
         state, obs = get_noisy_state(robot)
-        x_est, P = x_hat(x_est, np.r_[steering], obs, P)
+        x_est, P = x_hat(robot, x_est, np.r_[steering], obs, P)
         theta = x_est[2]
         num+=1
     return goal_reached
