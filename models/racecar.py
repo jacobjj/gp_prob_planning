@@ -512,8 +512,8 @@ def get_model_KF(robot, obstacles, model):
             X = np.r_[X, X_SE2]
             Y = np.r_[Y, d]
             num += X_temp.shape[0]
-        # np.save('X_dubins.npy', X)
-        # np.save('Y_dubins.npy', Y)
+        np.save('X_dubins.npy', X)
+        np.save('Y_dubins.npy', Y)
     
     # Construct model
     kernel = GPy.kern.RBF(input_dim=4)
@@ -528,7 +528,7 @@ def get_model_KF(robot, obstacles, model):
         m.update_model(True)
     except FileNotFoundError:
         m.optimize()
-        # np.save('env_10_param.npy', m.param_array)
+        np.save('env_10_param.npy', m.param_array)
     return m 
 
 
