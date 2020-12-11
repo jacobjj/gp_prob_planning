@@ -553,7 +553,7 @@ def execute_path(robot, traj, obstacles):
     v = 20
     K = 2.
 
-    reset(car, traj[0, 0], traj[0, 1], traj[0, 2])
+    reset(robot, traj[0, 0], traj[0, 1], traj[0, 2])
     x, y, theta, _, _ = get_state(robot)
     x_est = np.r_[x, y, theta, 0.0, 0.0]
     look_ahead = 0.05
