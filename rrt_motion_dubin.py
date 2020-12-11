@@ -170,7 +170,7 @@ def evaluate_path():
         accuracy = 0
         if path_param['success']:
             for _ in range(100):
-                done = racecar.execute_path(car, path_param['path_interpolated'], obstacles)
+                done = racecar.execute_path_LQR(robot, path_param['path_interpolated'], obstacles)
                 if done:
                     accuracy += 1
         path_param['accuracy'] = accuracy
