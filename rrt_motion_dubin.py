@@ -161,6 +161,40 @@ def start_experiment():
 
         pickle.dump(path_param, open('/root/data/dubins/path_{}.p'.format(i), 'wb'))
 
+
+def start_experiment_rrt():
+    '''
+    Run the RRT* experiment with collision checking using distance.
+    '''
+    if GP_check:
+        print("Turn off GP_check and rerun experiment")
+        raise NameError("GP_check value does not satisfy")
+    
+    for i in range(30, 40):
+        print("Planning Path: {}".format(i))
+        data = pickle.load(open('/root/data/dubins/CCGP-MP/exp4/path_{}.p'.format(i), 'rb'))
+        start_array = data['path'][0]
+        goal_array = data['path'][-1]
+        path_param = {}
+        # Define start and goal locations from file
+        start = ob.State(dubinSpace)
+        start().setX(start_array[0])
+        start().setY(start_array[1])
+        start().setYaw(start_array[2])
+
+        goal = ob.State(dubinSpace)
+        goal().setX(goal_array[0])
+        goal().setY(goal_array[1])
+        goal().setYaw(goal_array[2])
+
+        path, path_interpolated, success = get_path(start, goal)
+        path_param['path'] = path
+        path_param['path_interpolated'] = path_interpolated
+        path_param['success'] = success
+
+        pickle.dump(path_param, open('/root/data/dubins/path_{}.p'.format(i), 'wb'))
+        
+
 def evaluate_path():
     '''
     Evaluate the path of the trajectory.
