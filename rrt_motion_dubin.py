@@ -213,6 +213,7 @@ def evaluate_path():
 
 
 if __name__=="__main__":
+    start_experiment_rrt()
     # start_experiment()
     # evaluate_path()
     # path_param = pickle.load(open('/root/data/dubins/path_0.p', 'rb'))
