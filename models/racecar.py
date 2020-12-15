@@ -1,6 +1,7 @@
 '''Define a racecar based on pybullet example code.
 '''
-import pybullet as p
+import pybullet_utils.bullet_client as bc
+import pybullet as pyb
 import pybullet_data
 import numpy as np
 
@@ -15,35 +16,21 @@ import GPy
 from config import box_length, box_width, cir_radius
 
 if False:
-    physicsClient = p.connect (p.GUI)
-    p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
+    # physicsClient =  p.connect (p.GUI)
+    p = bc.BulletClient(connection_mode=pyb.GUI)
+    p.configureDebugVisualizer(pyb.COV_ENABLE_SHADOWS, 0)
 else:
-    physicsClient = p.connect(p.DIRECT)
+    # physicsClient = p.connect(p.DIRECT)
+    p = bc.BulletClient(connection_mode=pyb.DIRECT)
+
+# For checking collision checking
+p2 = bc.BulletClient(connection_mode=pyb.DIRECT)
 
 
-p.setAdditionalSearchPath(pybullet_data.getDataPath())
-p.resetSimulation()
-p.setGravity(0, 0, -9.8)
-useRealTimeSim = 0
 # Default dt for pybullet is 1/240 or 240Hz
 # We could change this by setting the parameter p.setTimeStep,
 # but according to their documentation not ideal this parameter.
 dt = 1/240
-
-#for video recording (works best on Mac and Linux, not well on Windows)
-#p.startStateLogging(p.STATE_LOGGING_VIDEO_MP4, "racecar.mp4")
-p.setRealTimeSimulation(useRealTimeSim)  # either this
-p.loadURDF("plane.urdf")
-
-p.resetDebugVisualizerCamera(
-    cameraDistance=10, 
-    cameraYaw=0, 
-    cameraPitch=-89.9, 
-    cameraTargetPosition=[5,5,0])
-
-geomBox = p.createCollisionShape(p.GEOM_BOX, halfExtents=[box_length/2, box_width/2, 0.2])
-geomCircle = p.createCollisionShape(p.GEOM_CYLINDER, radius=cir_radius, height = 0.4)
-geomRobot = p.createCollisionShape(p.GEOM_CYLINDER, radius=0.1, height=0.2)
 
 # Assuming the wheelbase of the car is the same used in MIT racecar
 wheelbase = 0.325
@@ -51,98 +38,120 @@ wheelbase = 0.325
 steering = [0, 2]  
 wheels = [8, 15]
 
-# for i in range(p.getNumJoints(car)):
-#     print(p.getJointInfo(car, i))
-def initialize_constraints(car):
+
+useRealTimeSim = 0
+
+def set_simulation_env(client_obj):
+    '''
+    Set environment for the given client_object.
+    :param client_obj: A pybullet_utils.BulletClient object
+    '''
+
+    client_obj.setAdditionalSearchPath(pybullet_data.getDataPath())
+    client_obj.resetSimulation()
+    client_obj.setGravity(0, 0, -9.8)
+
+    #for video recording (works best on Mac and Linux, not well on Windows)
+    #client_obj.startStateLogging(client_obj.STATE_LOGGING_VIDEO_MP4, "racecar.mp4")
+    client_obj.setRealTimeSimulation(useRealTimeSim)  # either this
+    client_obj.loadURDF("plane.urdf")
+
+    client_obj.resetDebugVisualizerCamera(
+        cameraDistance=10, 
+        cameraYaw=0, 
+        cameraPitch=-89.9, 
+        cameraTargetPosition=[5,5,0])
+
+def initialize_constraints(client_obj, car):
     '''
     Initialize constraints for the car model.
     :param car: The pybullet id of the car model.
     '''
-    for wheel in range(p.getNumJoints(car)):
-        p.setJointMotorControl2(car, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
-        p.getJointInfo(car, wheel)
+    for wheel in range(client_obj.getNumJoints(car)):
+        client_obj.setJointMotorControl2(car, wheel, pyb.VELOCITY_CONTROL, targetVelocity=0, force=0)
+        client_obj.getJointInfo(car, wheel)
 
     print("----------------")
 
-    #p.setJointMotorControl2(car,10,p.VELOCITY_CONTROL,targetVelocity=1,force=10)
-    c = p.createConstraint(car,
+    #client_obj.setJointMotorControl2(car,10,client_obj.VELOCITY_CONTROL,targetVelocity=1,force=10)
+    c = client_obj.createConstraint(car,
                         9,
                         car,
                         11,
-                        jointType=p.JOINT_GEAR,
+                        jointType=pyb.JOINT_GEAR,
                         jointAxis=[0, 1, 0],
                         parentFramePosition=[0, 0, 0],
                         childFramePosition=[0, 0, 0])
-    p.changeConstraint(c, gearRatio=1, maxForce=10000)
+    client_obj.changeConstraint(c, gearRatio=1, maxForce=10000)
 
-    c = p.createConstraint(car,
+    c = client_obj.createConstraint(car,
                         10,
                         car,
                         13,
-                        jointType=p.JOINT_GEAR,
+                        jointType=pyb.JOINT_GEAR,
                         jointAxis=[0, 1, 0],
                         parentFramePosition=[0, 0, 0],
                         childFramePosition=[0, 0, 0])
-    p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+    client_obj.changeConstraint(c, gearRatio=-1, maxForce=10000)
 
-    c = p.createConstraint(car,
+    c = client_obj.createConstraint(car,
                         9,
                         car,
                         13,
-                        jointType=p.JOINT_GEAR,
+                        jointType=pyb.JOINT_GEAR,
                         jointAxis=[0, 1, 0],
                         parentFramePosition=[0, 0, 0],
                         childFramePosition=[0, 0, 0])
-    p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+    client_obj.changeConstraint(c, gearRatio=-1, maxForce=10000)
 
-    c = p.createConstraint(car,
+    c = client_obj.createConstraint(car,
                         16,
                         car,
                         18,
-                        jointType=p.JOINT_GEAR,
+                        jointType=pyb.JOINT_GEAR,
                         jointAxis=[0, 1, 0],
                         parentFramePosition=[0, 0, 0],
                         childFramePosition=[0, 0, 0])
-    p.changeConstraint(c, gearRatio=1, maxForce=10000)
+    client_obj.changeConstraint(c, gearRatio=1, maxForce=10000)
 
-    c = p.createConstraint(car,
+    c = client_obj.createConstraint(car,
                         16,
                         car,
                         19,
-                        jointType=p.JOINT_GEAR,
+                        jointType=pyb.JOINT_GEAR,
                         jointAxis=[0, 1, 0],
                         parentFramePosition=[0, 0, 0],
                         childFramePosition=[0, 0, 0])
-    p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+    client_obj.changeConstraint(c, gearRatio=-1, maxForce=10000)
 
-    c = p.createConstraint(car,
+    c = client_obj.createConstraint(car,
                         17,
                         car,
                         19,
-                        jointType=p.JOINT_GEAR,
+                        jointType=pyb.JOINT_GEAR,
                         jointAxis=[0, 1, 0],
                         parentFramePosition=[0, 0, 0],
                         childFramePosition=[0, 0, 0])
-    p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+    client_obj.changeConstraint(c, gearRatio=-1, maxForce=10000)
 
-    c = p.createConstraint(car,
+    c = client_obj.createConstraint(car,
                         1,
                         car,
                         18,
-                        jointType=p.JOINT_GEAR,
+                        jointType=pyb.JOINT_GEAR,
                         jointAxis=[0, 1, 0],
                         parentFramePosition=[0, 0, 0],
                         childFramePosition=[0, 0, 0])
-    p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
-    c = p.createConstraint(car,
+    client_obj.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
+    c = client_obj.createConstraint(car,
                         3,
                         car,
                         19,
-                        jointType=p.JOINT_GEAR,
+                        jointType=pyb.JOINT_GEAR,
                         jointAxis=[0, 1, 0],
                         parentFramePosition=[0, 0, 0],
                         childFramePosition=[0, 0, 0])
-    p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
+    client_obj.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
 
 np.random.seed(10)
 # Randomly generate boxes
@@ -153,23 +162,17 @@ xy = np.random.rand(num_boxes, 2)*9 + 0.5
 num_circles = 3
 xy_circle = np.random.rand(num_circles, 2)*9 + 0.5
 
-def set_car():
+def set_obstacles(client_obj):
     '''
-    A funtion to intialize a car model in the simulator.
+    A function to set obstacles in the environment
+    :param client_obj: A pybullet_utils.BulletClient object
     '''
-    car = p.loadURDF("racecar/racecar_differential.urdf", [0.0, 0.0, 0.05074242991633105])  #, [0,0,2],useFixedBase=True)
-    initialize_constraints(car)
-    return car
+    geomBox = client_obj.createCollisionShape(pyb.GEOM_BOX, halfExtents=[box_length/2, box_width/2, 0.2])
+    geomCircle = client_obj.createCollisionShape(pyb.GEOM_CYLINDER, radius=cir_radius, height = 0.4)
+    geomRobot = client_obj.createCollisionShape(pyb.GEOM_CYLINDER, radius=0.1, height=0.2)
 
-def set_env():
-    '''
-    Set the environment up with obstacles and a racecar.
-    :return tuple: The pybullet ID of obstacles and robot
-    '''
-    print('------------------------------------')
-    car = set_car()
     obstacles_box = [
-        p.createMultiBody(
+        client_obj.createMultiBody(
             baseMass=0,
             baseCollisionShapeIndex=geomBox,
             basePosition=np.r_[xy_i, 0.2]
@@ -178,7 +181,7 @@ def set_env():
         ]
 
     obstacles_circle = [
-        p.createMultiBody(
+        client_obj.createMultiBody(
             baseMass=0,
             baseCollisionShapeIndex=geomCircle,
             basePosition=np.r_[xy_i, 0.2]
@@ -186,8 +189,25 @@ def set_env():
         for xy_i in xy_circle
     ]
     obstacles = obstacles_box + obstacles_circle
-        
-    return obstacles, car
+    return obstacles
+
+def set_env():
+    '''
+    Set the environment up with obstacles and a racecar.
+    :return tuple: The pybullet ID of obstacles and robot
+    '''
+    print('------------------------------------')
+    set_simulation_env(p)
+    # Load car on simulator
+    car_1 = p.loadURDF("racecar/racecar_differential.urdf", [0.0, 0.0, 0.05074242991633105])  #, [0,0,2],useFixedBase=True)  #, [0,0,2],useFixedBase=True)
+    initialize_constraints(client_obj=p, car=car_1)
+    obstacles_1 = set_obstacles(p)        
+    return obstacles_1, car_1
+
+set_simulation_env(p2)
+car_2 = p2.loadURDF("racecar/racecar_differential.urdf", [0.0, 0.0, 0.05074242991633105])  #, [0,0,2],useFixedBase=True)
+initialize_constraints(client_obj=p2, car=car_2)
+obstacles_2 = set_obstacles(p2)
 
 targetVelocitySlider = p.addUserDebugParameter("wheelVelocity", -50, 50, 0)
 maxForceSlider = p.addUserDebugParameter("maxForce", 0, 50, 20)
@@ -239,11 +259,11 @@ def step(robot, targetVelocity, steeringAngle, sliders = False):
         p.stepSimulation()
     # time.sleep(0.01)
 
-M = np.eye(5)*1e-1 # Motion Noise
-M[2, 2] = np.deg2rad(10) # Motion Noise for orientation
+M = np.eye(5)*5e-2 # Motion Noise
+M[2, 2] = np.deg2rad(5) # Motion Noise for orientation
 M[4, 4] = np.deg2rad(0)
-N = np.eye(5)*1e-1 # Observation Noise
-N[2,2] = np.deg2rad(5) # Motion Noise for orientation
+N = np.eye(5)*1e-2 # Observation Noise
+N[2,2] = np.deg2rad(2) # Motion Noise for orientation
 
 def get_state(robot):
     '''
@@ -492,7 +512,7 @@ def get_model_KF(robot, obstacles, model):
     except FileNotFoundError:
         X = np.array([[0.0, 0.0, 0.0, 0.0]])
         Y = np.array([0.0])
-        samples = 1000
+        samples = 2000
         num = 0
         while num<samples:
             state = np.random.rand(2)*10
@@ -653,6 +673,24 @@ def calc_nearest_index(state, traj):
 
     return ind, mind
 
+def est_check_collision(x, y, theta):
+    '''
+    Check if an estimated state is in collision
+    :param x: The x position of robot
+    :param y: The y position of robot
+    :param theta: The theta of robot
+    '''
+    quat = p.getQuaternionFromEuler((0, 0, theta))
+    # Reset base position and orientation
+    p2.resetBasePositionAndOrientation(car_2, np.r_[x, y, 0.05074242991633105], quat)
+    distance = min(
+        (
+            min(p2.getClosestPoints(bodyA=obs, bodyB=car_2, distance=100), key=lambda x:x[8])[8]
+            for obs in obstacles_2
+        )
+    )
+    return distance<0
+
 
 def execute_path_LQR(robot, traj, obstacles):
     '''
@@ -705,11 +743,22 @@ def execute_path_LQR(robot, traj, obstacles):
         x_est, P =  x_hat(robot, x_est, np.r_[-delta], obs, P)
         x, y, theta, phi, speed = get_state(robot)
     
-        if any((p.getContactPoints(robot, obs) for obs in obstacles)):
+        # if any((p.getContactPoints(robot, obs) for obs in obstacles)):
+        #     # print("Collision")
+        #     break
+        if est_check_collision(x_est[0], x_est[1], x_est[2]):
             # print("Collision")
             break
-        
+
         if np.linalg.norm(x_est[:2]-goal[:2])<0.25:
             goal_reached = True
         num+=1
     return goal_reached
+
+
+def del_all():
+    '''
+    Delete all the pybullet connections
+    '''
+    p.__del__()
+    p2.__del__()
