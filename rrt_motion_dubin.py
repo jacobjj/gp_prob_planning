@@ -403,3 +403,5 @@ if __name__=="__main__":
         contour = plt_objects['gpmean'][0]
         ax.clabel(contour, contour.levels, inline=True, fontsize=10)
         # plt.colorbar(ax)
+    
+    racecar.del_all()
