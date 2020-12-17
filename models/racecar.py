@@ -694,11 +694,27 @@ def est_check_collision(x, y, theta):
 
 def execute_path_LQR(robot, traj, obstacles):
     '''
-    Execute a trajectory, using LQR controller.
+    Returns true if a trajectory executed using LQR controller
+    without collision.
     :param robot: The pybullet id of the robot
     :param traj: The numpy array of trajectory
     :param obstacles: A list of pybullet id of obstacles
     :return bool: True if the goal is reached.
+    '''
+    done, _, _ = execute_path_LQR_data(robot, traj, obstacles)
+    return done
+
+
+def execute_path_LQR_data(robot, traj, obstacles, get_log=False):
+    '''
+    Executes a trajectory using LQR controller and returns
+    path log if required.
+    :param robot: The pybullet id of the robot
+    :param traj: The numpy array of trajectory
+    :param obstacles: A list of pybullet id of obstacles
+    :param get_log: A bool, which records the estimated and true path of the robot
+    :return (bool, np.array, np.array): A tuple of done flag, true trajectory,
+    and estimated trajectory.
     '''
     reset(robot, traj[0,0], traj[0,1], traj[0,2])
     x, y, theta, _, _ =  get_state(robot)
@@ -710,6 +726,8 @@ def execute_path_LQR(robot, traj, obstacles):
     P = np.eye(5)*0
     goal= traj[-1,:]
     num = 0
+    true_traj = []
+    est_traj = []
     while not goal_reached and num<1e4:
         ind, e = calc_nearest_index(x_est, traj)
         v = x_est[3]
@@ -742,10 +760,14 @@ def execute_path_LQR(robot, traj, obstacles):
         state, obs =  get_noisy_state(robot)
         x_est, P =  x_hat(robot, x_est, np.r_[-delta], obs, P)
         x, y, theta, phi, speed = get_state(robot)
+        if get_log:
+            true_traj.append(x_est[:3])
+            est_traj.append(np.r_[x, y, theta])
     
         # if any((p.getContactPoints(robot, obs) for obs in obstacles)):
         #     # print("Collision")
         #     break
+        
         if est_check_collision(x_est[0], x_est[1], x_est[2]):
             # print("Collision")
             break
@@ -753,7 +775,7 @@ def execute_path_LQR(robot, traj, obstacles):
         if np.linalg.norm(x_est[:2]-goal[:2])<0.25:
             goal_reached = True
         num+=1
-    return goal_reached
+    return goal_reached, true_traj, est_traj
 
 
 def del_all():
