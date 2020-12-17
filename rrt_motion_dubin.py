@@ -61,13 +61,7 @@ class ValidityCheckerDistance(ob.StateValidityChecker):
         '''
         Check if the given state is valid.
         '''
-        yaw = state.getYaw()
-        robotOrient = p.getQuaternionFromEuler((0.0, 0.0, yaw))
-        p.resetBasePositionAndOrientation(
-            robot, 
-            np.r_[state.getX(), state.getY(), 0.05074242991633105], 
-            robotOrient
-        )
+        racecar.reset(robot, state.getX(), state.getY(), state.getYaw())
         d = racecar.get_distance(obstacles, robot)
         return d>=0
 
