@@ -9,6 +9,7 @@ dccp/**
 
 # Untrack personal folders
 data/**
+env_param/**
 jupyter_ws/**
 .vscode/**
 
@@ -18,4 +19,5 @@ jupyter_ws/**
 
 # Untrack ipy checkpoints
 PlotVar.ipynb
+DebriefTestData.ipynb
 **/*.ipynb_checkpoints/
