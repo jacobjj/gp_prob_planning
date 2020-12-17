@@ -139,11 +139,16 @@ def get_path(start, goal):
     
     return np.array(path), np.array(path_interpolated), success
 
-def start_experiment():
+def start_experiment(start, samples):
     '''
     Run the RRT* experiments for 100 start and goal points for the same map
     '''
-    for i in range(20, 30):
+    
+    if not GP_check:
+        print("Turn on GP_check and rerun experiment")
+        raise NameError("GP_check value does not satisfy")
+    
+    for i in range(start, start+samples):
         path_param = {}
         # Define random start and goal locations
         start = ob.State(dubinSpace)
@@ -161,20 +166,23 @@ def start_experiment():
         path_param['path_interpolated'] = path_interpolated
         path_param['success'] = success
 
-        pickle.dump(path_param, open('/root/data/dubins/path_{}.p'.format(i), 'wb'))
+        pickle.dump(path_param, open('/root/data/dubins/CCGP-MP/exp16/path_{}.p'.format(i), 'wb'))
 
 
-def start_experiment_rrt():
+def start_experiment_rrt(start, samples):
     '''
     Run the RRT* experiment with collision checking using distance.
+    :param start: The start index of the experiment.
+    :param samples: The number of samples to be collected
     '''
+    exp_num = 15
     if GP_check:
         print("Turn off GP_check and rerun experiment")
         raise NameError("GP_check value does not satisfy")
     
-    for i in range(30, 40):
+    for i in range(start, start+samples):
         print("Planning Path: {}".format(i))
-        data = pickle.load(open('/root/data/dubins/CCGP-MP/exp4/path_{}.p'.format(i), 'rb'))
+        data = pickle.load(open('/root/data/dubins/CCGP-MP/exp{}/path_{}.p'.format(exp_num, i), 'rb'))
         start_array = data['path'][0]
         goal_array = data['path'][-1]
         path_param = {}
@@ -194,15 +202,20 @@ def start_experiment_rrt():
         path_param['path_interpolated'] = path_interpolated
         path_param['success'] = success
 
-        pickle.dump(path_param, open('/root/data/dubins/path_{}.p'.format(i), 'wb'))
+        pickle.dump(path_param, open('/root/data/dubins/RRT/exp{}/path_{}.p'.format(exp_num, i), 'wb'))
         
 
-def evaluate_path():
+def evaluate_path(start, samples):
     '''
     Evaluate the path of the trajectory.
+    :param start: The start index
+    :param samples: The number of samples to be collected
     '''
-    for i in range(0, 10):
-        path_param = pickle.load(open('/root/data/dubins/path_{}.p'.format(i), 'rb'))
+    exp = 'RRT'
+    exp_num = 16
+    for i in range(start, start+samples):
+        root_file = '/root/data/dubins/{}/exp{}/path_{}.p'.format(exp, exp_num, i)
+        path_param = pickle.load(open(root_file, 'rb'))
         accuracy = 0
         if path_param['success']:
             for _ in range(100):
@@ -211,13 +224,17 @@ def evaluate_path():
                     accuracy += 1
         path_param['accuracy'] = accuracy
         print("Accuracy for path {} : {}".format(i, accuracy))
-        pickle.dump(path_param, open('/root/data/dubins/path_{}.p'.format(i), 'wb'))
+        pickle.dump(path_param, open(root_file.format(i), 'wb'))
+
 
 
 if __name__=="__main__":
-    start_experiment_rrt()
-    # start_experiment()
-    # evaluate_path()
+    start, samples = int(sys.argv[1]), int(sys.argv[2])
+
+    # paths = [27, 19, 21, 28, 39, 23, 7, 12, 9]
+    # start_experiment(start, samples)
+    # start_experiment_rrt(start, samples)
+    evaluate_path(start, samples)
     # path_param = pickle.load(open('/root/data/dubins/path_0.p', 'rb'))
     # done = racecar.execute_path(car, path_param['path_interpolated'], obstacles)
 
