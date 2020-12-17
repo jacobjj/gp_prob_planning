@@ -9,6 +9,8 @@ import pickle
 
 import GPy
 
+import os.path as osp
+import sys
 try:
     import ompl.base as ob
     import ompl.geometric as og
@@ -227,11 +229,125 @@ def evaluate_path(start, samples):
         pickle.dump(path_param, open(root_file.format(i), 'wb'))
 
 
+def collect_data(num):
+    '''
+    The function to collect data for fig:diff_thresh_paths for the paper.
+    '''
+    root_folder = '/root/data/dubins/'
+    file_loc = osp.join(root_folder, 'CCGP-MP', 'exp16', 'path_{}.p'.format(num))
+    data = {}
+    path_param = pickle.load(open(file_loc, 'rb'))
+    # Set the start and goal locations
+    start_array = path_param['path'][0]
+    goal_array = path_param['path'][-1]
+    # Define start and goal locations from file
+    start = ob.State(dubinSpace)
+    start().setX(start_array[0])
+    start().setY(start_array[1])
+    start().setYaw(start_array[2])
+
+    goal = ob.State(dubinSpace)
+    goal().setX(goal_array[0])
+    goal().setY(goal_array[1])
+    goal().setYaw(goal_array[2])
+    # Evaluate the trajectory for these thresholds
+    if path_param['success']:
+        path_param['true_traj'] = []
+        path_param['est_traj'] = []
+        for _ in range(20):
+            done, true_traj, est_traj = racecar.execute_path_LQR_data(
+                robot, 
+                path_param['path_interpolated'], 
+                obstacles,
+                get_log=True
+            )
+            path_param['true_traj'].append(np.array(true_traj))
+            path_param['est_traj'].append(np.array(est_traj))
+    data['0.01'] = path_param
+
+    thresh_list = [0.05, 0.1]
+    # Plan the trajectory for different thresholds
+    for thresh in thresh_list:
+        reset_threshold(thresh)
+        path_param = {}
+        path, path_interpolated, success = get_path(start, goal)
+        path_param['path'] = path
+        path_param['path_interpolated'] = path_interpolated
+        path_param['success'] = success
+
+        if success:
+            # Evaluate the trajectory for these thresholds
+            path_param['true_traj'] = []
+            path_param['est_traj'] = []
+            for _ in range(20):
+                done, true_traj, est_traj = racecar.execute_path_LQR_data(
+                    robot, 
+                    path_param['path_interpolated'], 
+                    obstacles,
+                    get_log=True
+                )
+                path_param['true_traj'].append(np.array(true_traj))
+                path_param['est_traj'].append(np.array(est_traj))
+        data['{}'.format(thresh)] = path_param
+
+    save_file_loc = osp.join(root_folder,'fig_data','fig3','path_{}.p'.format(num))
+    pickle.dump(data, open(save_file_loc, 'wb'))
+
+def collect_data_rrt(num):
+    '''
+    The function to collect data for fig:diff_thresh_paths
+    :param num: The path number
+    '''
+    root_folder = '/root/data/dubins/'
+    file_loc = osp.join(root_folder, 'CCGP-MP', 'exp16', 'path_{}.p'.format(num))
+    path_param = pickle.load(open(file_loc, 'rb'))
+    # Set the start and goal locations
+    start_array = path_param['path'][0]
+    goal_array = path_param['path'][-1]
+    # Define start and goal locations from file
+    start = ob.State(dubinSpace)
+    start().setX(start_array[0])
+    start().setY(start_array[1])
+    start().setYaw(start_array[2])
+
+    goal = ob.State(dubinSpace)
+    goal().setX(goal_array[0])
+    goal().setY(goal_array[1])
+    goal().setYaw(goal_array[2])
+    # Evaluate the trajectory for these thresholds
+    path, path_interpolated, success = get_path(start, goal)
+    path_param['path'] = path
+    path_param['path_interpolated'] = path_interpolated
+    path_param['success'] = success
+
+    data_file = osp.join(root_folder, 'fig_data', 'fig3', 'path_{}.p'.format(num))
+    data = pickle.load(open(data_file, 'rb'))
+
+    if success:
+        # Evaluate the trajectory for these thresholds
+        path_param['true_traj'] = []
+        path_param['est_traj'] = []
+        for _ in range(20):
+            done, true_traj, est_traj = racecar.execute_path_LQR_data(
+                robot, 
+                path_param['path_interpolated'], 
+                obstacles,
+                get_log=True
+            )
+            path_param['true_traj'].append(np.array(true_traj))
+            path_param['est_traj'].append(np.array(est_traj))
+    data['rrt'] = path_param
+    pickle.dump(data, open(data_file, 'wb'))
+
 
 if __name__=="__main__":
     start, samples = int(sys.argv[1]), int(sys.argv[2])
 
     # paths = [27, 19, 21, 28, 39, 23, 7, 12, 9]
+    # collect_data_rrt(start)
+    # for i in range(start, start+samples):
+        # collect_data(paths[i])
+        # collect_data_rrt(paths[i])
     # start_experiment(start, samples)
     # start_experiment_rrt(start, samples)
     evaluate_path(start, samples)
