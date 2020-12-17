@@ -2,7 +2,7 @@
 by investigating a sphere encapsulating the start and goal 
 location. 
 '''
-from config import box_width, box_length, xy
+from config import box_width, box_length, xy, cir_radius
 
 import GPy
 import numpy as np
@@ -26,7 +26,7 @@ c = N.ppf(1-thresh)
 # Define gaussian model
 m = get_model(robot, obstacles, point)
 # Define LTI system
-A,B = point.get_dyn()
+A,B,_, _ = point.get_dyn()
 
 # Define bound for trajectory
 L = np.linalg.norm(A)
@@ -49,7 +49,7 @@ weights = K_inv @ m.Y
 k_x_x = m.kern.K(np.c_[0,0])
 
 for xy_i in point.xy_circle:
-    plt_cir = plt.Circle(xy_i, radius=0.2, color='r')
+    plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r')
     ax[0].add_patch(plt_cir)
 
 for xy_i in point.xy:

@@ -13,4 +13,8 @@ RUN apt-get install -y libcairo-dev
 RUN pip3 install opencv-python \
 				cairosvg
 
+RUN apt-get install -y python3-pyqt5
+
+WORKDIR /root/prob_planning
+
 CMD [bash]
