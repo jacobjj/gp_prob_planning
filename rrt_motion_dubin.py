@@ -37,6 +37,14 @@ def SE2State2Tuple(state):
 thresh = 0.05
 N = stats.norm(scale=np.sqrt(1/2))
 c = N.ppf(1-thresh)
+def reset_threshold(thresh):
+    '''
+    A function to reset the threshold for planning environments:
+    :param thresh: A value between [0, 1] to set as threshold for planning.
+    '''
+    global c
+    c = N.ppf(1-thresh)
+    print("New threshold set as {}".format(thresh)) 
 
 m = racecar.get_model_KF(robot, obstacles, racecar)
 # m = racecar.get_model(robot, obstacles, racecar)
