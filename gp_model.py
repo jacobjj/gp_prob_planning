@@ -53,6 +53,7 @@ def get_path(A, B, M_n, N_n, step_size=10):
     while steps<step_size:
         u = np.random.rand(2)*1.5 - 0.75
         x_temp = A@x + B@u + M_n.rvs()
+        # Find a control that maintains the robot in the workspace
         if any(x_temp>=10) or any(x_temp<=0):
             continue
         x = x_temp
