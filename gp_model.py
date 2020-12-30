@@ -130,7 +130,7 @@ def get_model_KF(A, B, M_n, N_n, robot, obstacles, model):
             path, control, obs = get_path(A, B, M_n, N_n, step_size=1000)
             path_est = get_path_est(A, B, M_n.cov, N_n.cov, path, control, obs)
             Y_temp = []
-            for path_i in path:
+            for path_i in path_est:
                 p.resetBasePositionAndOrientation(robot, np.r_[path_i, 0.1], robotOrientation)
                 Y_temp.append(model.get_distance(obstacles, robot))
             Y = np.r_[Y, Y_temp]
