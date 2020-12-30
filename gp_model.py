@@ -140,17 +140,17 @@ def get_model_KF(A, B, M_n, N_n, robot, obstacles, model):
 
     print("Using model from state-estimated points")
     kernel = GPy.kern.RBF(input_dim=2, variance=1)
+    # Ignore the first row, since it is just filler values.
+    m = GPy.models.GPRegression(X[1:,:], Y[1:,None], kernel)
     try:
-        # Ignore the first row, since it is just filler values.
-        m = GPy.models.GPRegression(X[1:,:], Y[1:,None], kernel)
+        model_param = np.load('env_3_param.npy')
         m.update_model(False)
         m.initialize_parameter()
-        m[:] = np.load('env_5_param.npy')
+        m[:] = model_param
         print("Loading saved model")
         m.update_model(True)
     except FileNotFoundError:
         print("Could not find trained model")
-        m = GPy.models.GPRegression(X[1:,:], Y[1:,None], kernel)
         m.optimize()
         np.save('env_5_param.npy', m.param_array)
     return m
