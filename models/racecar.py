@@ -233,13 +233,15 @@ def reset(robot, x=0, y=0, theta=0):
 # def step(targetVelocity=, steeringAngle, maxForce):
 def step(robot, targetVelocity, steeringAngle, sliders = False):
     '''
-    Do a single step of simulation for the robot.
+    Do a single step of simulation for the robot. 
+    NOTE: The actual velocity of the robot is scaled down 20 times because 
+    of constraints.
     :param robot: The car that has to take a step
     :param targetVelocity: The target velocity to the wheels.
     :param steeringAngle: The angle of the steering angle, between -1&1.
     :param sliders: Enable GUI controllers to control the car.
     '''
-    maxForce = 20
+    maxForce = 200
     if sliders:
         maxForce = p.readUserDebugParameter(maxForceSlider)
         targetVelocity = p.readUserDebugParameter(targetVelocitySlider)
