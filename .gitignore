@@ -18,8 +18,7 @@ jupyter_ws/**
 **/*.p
 
 # Untrack ipy checkpoints
-PlotVar.ipynb
-DebriefTestData.ipynb
+*.ipynb
 **/*.ipynb_checkpoints/
 
 # Untrack images
