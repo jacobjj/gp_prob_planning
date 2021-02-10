@@ -269,3 +269,53 @@ def execute_path(traj, C, D, si_check):
             break
 
     return path_est, path_noisy, done
+
+
+def execute_traj_ignoreCol(traj):
+    '''
+    execute the trajectory by ignoring collison.
+    :param traj: 
+    return tuple: A tuple of estimated path and the target trajectory
+    '''
+
+    # Define the parameters for the path.
+    start = traj[0]
+    goal = traj[-1]
+    ind = 1
+    P = np.eye(2)*0
+    x = np.r_[start[0], start[1]] #+ stats.multivariate_normal(cov = P).rvs()
+    x_real = x
+    C = np.eye(2)*10
+    D = np.eye(2)*1e-1
+    K, _ , eigvals = dlqr(A, B, C, D)
+    path_est = [x]
+    path_target = [x]
+
+    done = False
+    ind = 0
+    count = 0
+    while not done and count<1000:
+        count +=1
+        temp_ind = calc_nearest_index(x, traj)
+        if temp_ind>ind:
+            ind = temp_ind
+        x_t = traj[ind]
+        path_target.append(x_t)
+        
+        # Asymptotic Gains
+        c = K@(x_t-x)     
+        c = np.clip(c, -0.75, 0.75)
+
+        # Take a step
+        x_real = A@x_real + B@c + M_n.rvs()
+        z_real = x_real + N_n.rvs()
+
+        x, P  = x_hat(x, c, z_real, P)
+        path_est.append(x)
+
+        # Check if goal is reached
+        if np.linalg.norm(x-np.r_[goal[0], goal[1]])<0.5:
+            done = True
+            break
+        
+    return path_est, path_target
