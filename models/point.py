@@ -102,12 +102,12 @@ def get_distance(obstacles, robot):
     '''
     assert isinstance(obstacles, list), "Obstacles has to be a list"
     distance =  min(
-        (
-            p.getClosestPoints(bodyA=obs, bodyB=robot, distance=100)[0][8]
-            for obs in obstacles
+            (
+                p.getClosestPoints(bodyA=obs, bodyB=robot, distance=100)[0][8]
+                for obs in obstacles
+            )
         )
-    )
-
+        
     return distance
 
 # Define Robot model
