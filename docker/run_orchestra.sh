@@ -6,6 +6,7 @@ do
 	docker run -d \
 	    --rm \
 	    --name=data_$1_$CID \
+	    --shm-size="2g"\
 	    -e DISPLAY=$DISPLAY \
 	    -e QT_X11_NO_MITSHM=1 \
 	    -v $XAUTH:/root/.Xauthority \
