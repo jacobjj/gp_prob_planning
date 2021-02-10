@@ -159,6 +159,52 @@ def get_lqr(traj, C, D):
         SN = C + A.T@SN@A + A.T@SN@B@L 
     return L_list
 
+# Using infinite horizon lqr gains
+def solve_DARE(A, B, Q, R):
+    """
+    solve a discrete time_Algebraic Riccati equation (DARE)
+    """
+    X = Q
+    maxiter = 150
+    eps = 0.01
+
+    for i in range(maxiter):
+        Xn = A.T @ X @ A - A.T @ X @ B @ \
+            np.linalg.inv(R + B.T @ X @ B) @ B.T @ X @ A + Q
+        if (abs(Xn - X)).max() < eps:
+            break
+        X = Xn
+
+    return Xn
+
+
+def dlqr(A, B, Q, R):
+    """Solve the discrete time lqr controller.
+    x[k+1] = A x[k] + B u[k]
+    cost = sum x[k].T*Q*x[k] + u[k].T*R*u[k]
+    # ref Bertsekas, p.151
+    """
+
+    # first, try to solve the ricatti equation
+    X = solve_DARE(A, B, Q, R)
+
+    # compute the LQR gain
+    K = np.linalg.inv(B.T @ X @ B + R) @ (B.T @ X @ A)
+
+    eigVals, eigVecs = np.linalg.eig(A - B @ K)
+
+    return K, X, eigVals
+
+
+def calc_nearest_index(state, traj):
+    '''
+    Calculate the closest index of trajectory path.
+    '''
+    d = np.linalg.norm(state[:2] - traj[:, :2], axis=1)
+    ind = np.argmin(d)
+
+    return ind
+
 
 # Noise model
 N_n = stats.multivariate_normal(cov=N)
@@ -172,25 +218,40 @@ def execute_path(traj, C, D, si_check):
     :returns (estimated state, real state, valid): A tuple containing the estimated state 
     and real state of the robot, and whether the path was completed or not.
     '''
+    K, _ , eigvals = dlqr(A, B, C, D)
+
     # Define the parameters for the path.
     ompl_path_obj = og.PathGeometric(si_check)
     state_temp = ob.State(si_check.getStateSpace())
     start = traj[0]
     goal = traj[-1]
 
-    P = np.eye(2)*1e-1
-    L_list = get_lqr(traj, C, D)
-    x = np.r_[start[0], start[1]] + stats.multivariate_normal(cov = P).rvs()
+    P = np.eye(2)*0
+    # L_list = get_lqr(traj, C, D)
+    x = np.r_[start[0], start[1]] #+ stats.multivariate_normal(cov = P).rvs()
     x_real = x
     state_temp[0], state_temp[1] = x[0], x[1]
     ompl_path_obj.append(state_temp())
     path_est = [x]
     path_noisy = [x]
     done = False
-    for i,T in enumerate(zip(traj[:-1], reversed(L_list))):
-        x_t, L = T
-        delta_c = L@(x_real-x_t)
-        c = np.linalg.inv(B)@(traj[i+1]-A@x_t) + delta_c
+    count = 0
+    ind = 0
+    # for i,T in enumerate(zip(traj[:-1], reversed(L_list))):
+    while not done and count<1500:
+        count += 1
+        # x_t, L = T
+        temp_ind = calc_nearest_index(x, traj)
+        if temp_ind>ind:
+            ind = temp_ind
+        x_t = traj[ind]
+
+        c = K@(x_t-x)
+        c = np.clip(c, -0.75, 0.75)
+
+        # delta_c = L@(x_real-x_t)
+        # c = np.linalg.inv(B)@(traj[i+1]-A@x_t) + delta_c
+        
         x_real = A@x_real + B@c + M_n.rvs()
         state_temp[0], state_temp[1] = x_real[0], x_real[1]
         ompl_path_obj.append(state_temp())
@@ -202,10 +263,8 @@ def execute_path(traj, C, D, si_check):
         # Check if goal is reached
         if np.linalg.norm(x-np.r_[goal[0], goal[1]])<0.5:
             done = True
-            print("Reached Goal")
             break
         if not ompl_path_obj.check():
-            print("Path in Collision")
             done = False
             break
 
