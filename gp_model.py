@@ -223,6 +223,68 @@ def get_model_KFv2(A, B, M_n, N_n, robot, obstacles, model, samples):
         m.optimize()
         np.save('env_3_param.npy', m.param_array)
     return m
+
+
+def get_model_KFv2_sparse(A, B, M_n, N_n, robot, obstacles, model, samples):
+    '''
+    Getting the sparse-GP model using the KF.
+    :param A,B : The linear state of the model
+    :param N_n: A scipy.stats random variable representing the obeservation noise
+    :param M_n: A scipy.stats random variable representing the motion noise
+    :param robot: pybullet.MultiBody object representing the robot
+    :param obstacles: pybullet.MultiBody object representing the obstacles in the environment
+    :param model: custom function found in folder "models" of the dynamic system
+    :param samples: The number of samples to use for the model
+    :returns GPy.models.SparseGPRegression model representing the obstacle space
+    '''
+    try:
+        X = np.load('X.npy')
+        Y = np.load('Y.npy')
+        print("Loading data for map")
+    except FileNotFoundError:
+        print("Could not find data, gathering data")
+        X = np.array([[0.0, 0.0]])
+        Y = np.array([0.0])
+        robotOrientation = (0.0, 0.0, 0.0, 1.0)
+        count = 0
+        while count<samples:
+            start = np.random.rand(2)*10
+            goal = np.random.rand(2)*10
+            alpha = np.arange(0, 1, step=0.05)
+            traj = (start[:, None]*(1-alpha) + goal[:, None]*alpha).T
+            path_est, path_target = model.execute_traj_ignoreCol(traj)
+            Y_temp = []
+            for path_i in path_est:
+                p.resetBasePositionAndOrientation(robot, np.r_[path_i, 0.1], robotOrientation)
+                Y_temp.append(model.get_distance(obstacles, robot))
+            Y = np.r_[Y, Y_temp]
+            X = np.r_[X, np.array(path_target)]
+            count+=len(path_target)
+        np.save("X.npy", X)
+        np.save("Y.npy", Y)
+
+    print("Using model from state-estimated points")
+    kernel = GPy.kern.RBF(input_dim=2, variance=1)
+    # Ignore the first row, since it is just filler values.
+    rand_index = np.random.permutation(np.arange(1, X.shape[0]))
+    Z = np.random.rand(100, 2)*10
+    m = GPy.models.SparseGPRegression(
+        X=X[rand_index[:samples],:], 
+        Y=Y[rand_index[:samples],None], 
+        Z=Z, 
+        kernel=kernel
+    )
+    try:
+        model_param = np.load('env_3_param_sparse.npy')
+        m.update_model(False)
+        m.initialize_parameter()
+        m[:] = model_param
+        print("Loading saved model")
+        m.update_model(True)
+    except FileNotFoundError:
+        print("Could not find trained model")
+        m.optimize()
+        np.save('env_3_param_sparse.npy', m.param_array)
     return m
 
 def return_collision_prob(x_mu, x_sigma, u, m, A, B):
