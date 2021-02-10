@@ -154,6 +154,19 @@ def get_model_KF(A, B, M_n, N_n, robot, obstacles, model):
     except FileNotFoundError:
         print("Could not find trained model")
         m.optimize()
+        np.save('env_3_param.npy', m.param_array)
+    return m
+
+
+def calc_nearest_index(state, traj):
+    '''
+    Calculate the closest index of trajectory path.
+    '''
+    d = np.linalg.norm(state[:2] - traj[:, :2], axis=1)
+    ind = np.argmin(d)
+
+    return ind
+
 
 def get_model_KFv2(A, B, M_n, N_n, robot, obstacles, model, samples):
     '''
