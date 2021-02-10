@@ -1,6 +1,7 @@
 # A script to run ompl-docker
 
 docker run -it \
+    -p $1:8800 \
     --gpus all \
     -e DISPLAY=$DISPLAY \
     -e QT_X11_NO_MITSHM=1 \
