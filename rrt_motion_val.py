@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import pickle
+import sys
 
 try:
     from ompl import base as ob
@@ -218,18 +219,22 @@ def get_path(start, goal):
 
     return np.array(path), np.array(path_interpolated), success
 
-# LQG parameter:
-C = np.eye(2)
-D = np.eye(2)
+def start_experiment(start, samples):
+    '''
+    Run the ccgp-mp experiment for random start and goal points.
+    :param start: The starting index.
+    :param samples: The number of samples to collect
+    '''
+    if not GP_check:
+        raise NameError("Toggle GP_check to True")
 
-def start_experiment():
-    '''
-    Run the RRT experiment for 100 start and goal points for the same map
-    '''
-    for i in range(0, 40):
+    exp = 'ccgp-mp-star'
+    exp_num = 8
+
+    for i in range(start, start+samples):
         path_param = {}
 
-        data = pickle.load(open('/root/data/path_{}.p'.format(i), 'rb'))
+        data = pickle.load(open('/root/data/point/ccgp-mp-star/exp6/path_{}.p'.format(i), 'rb'))
 
         start = ob.State(space)
         start[0] = data['path'][0,0]
@@ -239,7 +244,7 @@ def start_experiment():
         goal[0] = data['path'][-1, 0]
         goal[1] = data['path'][-1, 1]
 
-        # # # Define the start and goal location
+        # # Define the start and goal location
         # start = ob.State(space)
         # start.random()
         # while not ValidityChecker_obj.isValid(start()):
@@ -249,29 +254,88 @@ def start_experiment():
         # while not ValidityChecker_obj.isValid(goal()):   
         #     goal.random()
 
-        if not data['success']:
-            path, path_interpolated, success = get_path(start, goal)
-            if success:
-                path_param['path'] = path
-                path_param['path_interpolated'] = path_interpolated
-                path_param['success'] = success
+        path, path_interpolated, success = get_path(start, goal)
+        path_param['path'] = path
+        path_param['path_interpolated'] = path_interpolated
+        path_param['success'] = success
+        pickle.dump(path_param, open('/root/data/point/{}/exp{}/path_{}.p'.format(exp, exp_num, i), 'wb'))
+    
 
-            # Evaluate 100 paths
-            accuracy = 0
-            if success:
-                si_check = ob.SpaceInformation(space)
-                ValidityChecker_dis_obj = ValidityCheckerDistance(si_check)
-                si_check.setStateValidityChecker(ValidityChecker_dis_obj)
-                for _ in range(100):
-                    _, _, done = point.execute_path(path_interpolated, C, D, si_check)
-                    if done:
-                        accuracy += 1
-            path_param['accuracy'] = accuracy
+def start_experiment_rrt(start, samples):
+    '''
+    Run the ccgp-mp experiment for random start and goal points.
+    '''
+    if GP_check:
+        raise NameError("Toggle GP_check to False")
+    
+    exp = 1
 
-            pickle.dump(path_param, open('/root/data/path_{}.p'.format(i), 'wb'))
+    for i in range(start, start+samples):
+        path_param = {}
+
+        data = pickle.load(open('/root/data/point/ccgp-mp-star/exp6/path_{}.p'.format(i), 'rb'))
+
+        start = ob.State(space)
+        start[0] = data['path'][0,0]
+        start[1] = data['path'][0,1]
+
+        goal = ob.State(space)
+        goal[0] = data['path'][-1, 0]
+        goal[1] = data['path'][-1, 1]
+
+        path, path_interpolated, success = get_path(start, goal)
+        path_param['path'] = path
+        path_param['path_interpolated'] = path_interpolated
+        path_param['success'] = success
+
+        pickle.dump(path_param, open('/root/data/point/rrt-star/exp{}/path_{}.p'.format(exp, i), 'wb'))
+
+
+# LQG parameter:
+C = np.eye(2)*10
+D = np.eye(2)*0.1
+
+def evaluate_path(start, samples):
+    '''
+    Evalute the path by executing it multiple times.
+    :param start: The start index of the experiment
+    :param samples: Number of samples in this experiment
+    '''
+    exp = 'ccgp-mp-star'
+    exp_num = 8
+    
+    si_check = ob.SpaceInformation(space)
+    ValidityChecker_dis_obj = ValidityCheckerDistance(si_check)
+    si_check.setStateValidityChecker(ValidityChecker_dis_obj)
+
+    for i in range(start, start+samples):
+        root_file = '/root/data/point/{}/exp{}/path_{}.p'.format(exp, exp_num, i)
+        path_param = pickle.load(open(root_file, 'rb'))
+        accuracy = 0
+        # if path_param['success']:
+        if len(path_param['path_interpolated'])>0:
+            ompl_traj = og.PathGeometric(si_check)
+            state_temp = ob.State(si_check.getStateSpace())
+            for path_i in path_param['path']:    
+                state_temp[0], state_temp[1] = path_i[0], path_i[1]
+                ompl_traj.append(state_temp())
+            ompl_traj.interpolate(1000)
+            traj = np.array([[ompl_traj.getState(i)[0], ompl_traj.getState(i)[1]] for i in range(ompl_traj.getStateCount())])
+            for _ in range(100):
+                _, _, done = point.execute_path(traj, C, D, si_check)
+                if done:
+                    accuracy += 1
+        path_param['accuracy'] = accuracy
+        print("Accuracy for path {} : {}".format(i, accuracy))
+        pickle.dump(path_param, open(root_file.format(i), 'wb'))
+
 
 if __name__ == "__main__":
-    start_experiment()
+    start, samples = int(sys.argv[1]), int(sys.argv[2])
+    
+    # start_experiment(start, samples)
+    # start_experiment_rrt(start, samples)
+    evaluate_path(start, samples)
 
     # Visualize the planning network
     visualize_network = False
