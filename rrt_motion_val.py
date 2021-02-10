@@ -20,7 +20,7 @@ except ImportError:
 
 # Import project specific files
 from models import point
-from gp_model import get_model, get_model_KF
+from gp_model import get_model, get_model_KFv2, get_model_KFv2_sparse
 from config import box_width, box_length, xy, cir_radius
 
 # Set up environment details
@@ -40,7 +40,9 @@ A, B, M, N = point.get_dyn()
 N_n = stats.multivariate_normal(cov=N)
 M_n = stats.multivariate_normal(cov=M)
 
-m = get_model_KF(A[:2,:2], B[:2, :2], M_n, N_n, robot, obstacles, point)
+# m = get_model_KFv2(A[:2,:2], B[:2, :2], M_n, N_n, robot, obstacles, point, 10000)
+m = get_model_KFv2_sparse(A[:2,:2], B[:2, :2], M_n, N_n, robot, obstacles, point, 2500)
+
 plot_GP = False
 if plot_GP:
     fig_GP, ax_GP = plt.subplots()
