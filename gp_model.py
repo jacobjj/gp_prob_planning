@@ -127,8 +127,8 @@ def get_model_KF(A, B, M_n, N_n, robot, obstacles, model):
         X = np.array([[0.0, 0.0]])
         Y = np.array([0.0])
         robotOrientation = (0.0, 0.0, 0.0, 1.0)
-        for _ in range(5):
-            path, control, obs = get_path(A, B, M_n, N_n, step_size=1000)
+        for _ in range(10):
+            path, control, obs = get_path(A, B, M_n, N_n, step_size=250)
             path_est = get_path_est(A, B, M_n.cov, N_n.cov, path, control, obs)
             Y_temp = []
             for path_i in path_est:
