@@ -174,7 +174,7 @@ def lqg_mp(start, goal):
     best_cost = 0.0
     best_path_interpolated = []
     best_pi = []
-    for _ in range(1000):
+    for _ in range(100):
         path, path_interpolated = get_path(start, goal)
 
         # Define initial parameters:
@@ -234,18 +234,16 @@ def lqg_mp(start, goal):
 import os
 import pickle
 
-def start_experiment():
+def start_experiment(start, samples):
     '''
     Run the LQG experiment for the start and goal points for the same RRT-paths
     '''
     # Define path
-    folder_loc = '/root/data'
-    
-    # for file_i in os.listdir(folder_loc):
-    for i in range(350, 400):
-        # if '.p' in file_i:
-        file_i = 'path_{}.p'.format(i)
-        data = pickle.load(open(os.path.join(folder_loc, file_i), 'rb'))
+    folder_loc = '/root/data/point/'
+    exp = 3    
+    for i in range(start, start+samples):
+        file_i = os.path.join(folder_loc, 'ccgp-mp-star', 'exp6', 'path_{}.p'.format(i))
+        data = pickle.load(open(file_i, 'rb'))
         start_array = data['path'][0]
         goal_array = data['path'][-1]
         start = ob.State(space)
@@ -260,22 +258,16 @@ def start_experiment():
         path_param['path'] = path
         path_param['path_interpolated'] = path_interpolated
         path_param['p_list'] = p_list
-        # Evaluate 100 paths
-        accuracy = 0
-        si_check = ob.SpaceInformation(space)
-        ValidityChecker_dis_obj = ValidityCheckerDistance(si_check)
-        si_check.setStateValidityChecker(ValidityChecker_dis_obj)
-        for _ in range(100):
-            _, _, done = point.execute_path(path_interpolated, C, D, si_check)
-            if done:
-                accuracy += 1
-        path_param['accuracy'] = accuracy
 
-        pickle.dump(path_param, open(os.path.join(folder_loc, 'lqg_mp', file_i), 'wb'))
+        file_i_lqg = os.path.join(folder_loc, 'lqg_mp', 'exp{}'.format(exp), 'path_{}.p'.format(i))
+        pickle.dump(path_param, open(file_i_lqg, 'wb'))
 
+
+import sys
 if __name__ == "__main__":
+    start, samples = int(sys.argv[1]), int(sys.argv[2])
 
-    start_experiment()
+    start_experiment(start, samples)
 
     if False:
         ax.scatter(start[0], start[1], color='r', marker='x')
