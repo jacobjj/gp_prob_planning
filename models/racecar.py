@@ -659,7 +659,7 @@ def dlqr(A, B, Q, R):
 
 def calc_nearest_index(state, traj):
     '''
-    Calcunp.linalgte the closest index of trajectory path.
+    Calcualate the closest index of trajectory path.
     '''
     d = np.linalg.norm(state[:2] - traj[:, :2], axis=1)
     ind = np.argmin(d)
