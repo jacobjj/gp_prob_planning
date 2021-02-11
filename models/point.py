@@ -15,7 +15,7 @@ from scipy import stats
 
 from config import box_length, box_width, cir_radius
 
-np.random.seed(5)
+np.random.seed(3)
 
 # physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
 physicsClient = p.connect(p.DIRECT)
@@ -36,7 +36,7 @@ geomRobot = p.createCollisionShape(p.GEOM_CYLINDER, radius=0.1, height=0.2)
 # xy = [np.r_[2,2], np.r_[2, 8], np.r_[5,5], np.r_[8, 2], np.r_[8, 8]]
 
 # Randomly generate boxes
-num_boxes = 12
+num_boxes = 7
 xy = np.random.rand(num_boxes, 2)*9 + 0.5
 
 # Randomly generate circles
@@ -107,15 +107,14 @@ def get_distance(obstacles, robot):
                 for obs in obstacles
             )
         )
-        
     return distance
 
 # Define Robot model
 A = np.eye(2)
 B = np.eye(2)
 
-M = np.eye(2)*1e-2 # Motion Noise
-N = np.eye(2)*1e-3 # Observation Noise
+M = np.eye(2)*1e-1 # Motion Noise
+N = np.eye(2)*1e-2 # Observation Noise
 def get_dyn():
     '''
     Return the dynamics of the LTI system represented by:
