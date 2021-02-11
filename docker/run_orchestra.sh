@@ -1,7 +1,7 @@
 #!/bin/bash
 # A script to run ompl-docker
 SAMPLES=5
-for CID in {0..7..1}
+for CID in {0..24..1}
 do
 	docker run -d \
 	    --rm \
@@ -14,5 +14,5 @@ do
 	    -v /home/jacoblab/prob_planning/:/root/prob_planning \
 	    -v /home/jacoblab/prob_planning_data:/root/data \
 	    ompl-pybullet \
-	    python3 rrt_motion_dubin.py $((CID*SAMPLES)) $SAMPLES
+	    python3 rrt_motion_val.py $((CID*SAMPLES)) $SAMPLES
 done
