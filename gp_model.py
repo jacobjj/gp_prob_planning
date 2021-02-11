@@ -97,7 +97,7 @@ def get_path_est(A, B, M, N, path, control, obs):
     :param control: A list of control's sequence
     :param obs: A sequence of observation points.
     '''
-    P = np.eye(2)*1e-1
+    P = np.eye(2)*0
     x_est = path[0]
     path_est = [x_est]
     x_hat = get_state_est(A, B, M, N)
