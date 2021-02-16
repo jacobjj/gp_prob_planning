@@ -118,7 +118,7 @@ def get_path(start, goal):
     while not ss.haveExactSolutionPath():
         solved = ss.solve(30.0)
         time += 30
-        if time>300:
+        if time>1200:
             break
 
     if ss.haveExactSolutionPath():
@@ -149,26 +149,40 @@ def start_experiment(start, samples):
     if not GP_check:
         print("Turn on GP_check and rerun experiment")
         raise NameError("GP_check value does not satisfy")
+
+    exp = 'CCGP-MPv2'
+    exp_num = 2
     
     for i in range(start, start+samples):
         path_param = {}
-        # Define random start and goal locations
+        data = pickle.load(open('/root/data/dubins/CCGP-MPv2/exp1/path_{}.p'.format(i), 'rb'))
+
         start = ob.State(dubinSpace)
-        start.random()
-        while not ValidityChecker_obj.isValid(start()):
-            start.random()
-    
+        start[0] = data['path'][0,0]
+        start[1] = data['path'][0,1]
+
         goal = ob.State(dubinSpace)
-        goal.random()
-        while not ValidityChecker_obj.isValid(goal()):
-            goal.random()  
+        goal[0] = data['path'][-1, 0]
+        goal[1] = data['path'][-1, 1]
+
+        # # Define random start and goal locations
+        # start = ob.State(dubinSpace)
+        # start.random()
+        # while not ValidityChecker_obj.isValid(start()):
+        #     start.random()
+    
+        # goal = ob.State(dubinSpace)
+        # goal.random()
+        # while not ValidityChecker_obj.isValid(goal()):
+        #     goal.random()  
+
         path, path_interpolated, success = get_path(start, goal)
 
         path_param['path'] = path
         path_param['path_interpolated'] = path_interpolated
         path_param['success'] = success
 
-        pickle.dump(path_param, open('/root/data/dubins/CCGP-MP/exp16/path_{}.p'.format(i), 'wb'))
+        pickle.dump(path_param, open('/root/data/dubins/{}/exp{}/path_{}.p'.format(exp, exp_num, i), 'wb'))
 
 
 def start_experiment_rrt(start, samples):
@@ -348,28 +362,28 @@ if __name__=="__main__":
     # for i in range(start, start+samples):
         # collect_data(paths[i])
         # collect_data_rrt(paths[i])
-    # start_experiment(start, samples)
+    start_experiment(start, samples)
     # start_experiment_rrt(start, samples)
-    evaluate_path(start, samples)
+    # evaluate_path(start, samples)
     # path_param = pickle.load(open('/root/data/dubins/path_0.p', 'rb'))
     # done = racecar.execute_path(car, path_param['path_interpolated'], obstacles)
 
-    fig, ax = plt.subplots()
+    # fig, ax = plt.subplots()
 
-    ax.set_xlim((-0.2, 10.2))
-    ax.set_ylim((-0.2, 10.2))
+    # ax.set_xlim((-0.2, 10.2))
+    # ax.set_ylim((-0.2, 10.2))
 
-    # Initialize the position of obstacles
-    dimensions = [box_length, box_width]
-    rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
+    # # Initialize the position of obstacles
+    # dimensions = [box_length, box_width]
+    # rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
 
-    for xy_i in racecar.xy_circle:
-        plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r', alpha=0.5)
-        ax.add_patch(plt_cir)
+    # for xy_i in racecar.xy_circle:
+    #     plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r', alpha=0.5)
+    #     ax.add_patch(plt_cir)
 
-    for xy_i in racecar.xy:
-        plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r', alpha=0.5)
-        ax.add_patch(plt_box)
+    # for xy_i in racecar.xy:
+    #     plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r', alpha=0.5)
+    #     ax.add_patch(plt_box)
 
     if False:
         # Define random start and goal locations
@@ -397,7 +411,7 @@ if __name__=="__main__":
         
     # fig.show()
     # fig, ax = plt.subplots()
-    if True:
+    if False:
         plt_objects = m.plot(ax = ax, visible_dims=np.array([0, 1]), plot_data=True, cmap='Greys')
         # Get the contour plot objects
         contour = plt_objects['gpmean'][0]
