@@ -290,26 +290,6 @@ def get_noisy_state(robot):
     state = np.r_[x, y, theta, speed, phi]
     return state+stats.multivariate_normal.rvs(cov=M), state+stats.multivariate_normal.rvs(cov=N)
 
-def get_dyn(robot):
-    '''
-    Return the parameters of the LTI system reprsented by :
-    x_t+1 = A@x_t + B@u_t + m_t, m_t ~ N(0, M)
-    z_t+1 = x_t + n_t, n_t ~ N(0,N)
-    :returns (A,B,M,N): where the parameters correspond to the above equation.
-    '''
-    # Get the model kinematics
-    _, _, theta, phi, speed = get_state(robot)
-
-    # Define Robot model
-    A = np.eye(3)
-    B = np.zeros((3,1))
-
-    # Set the parameters
-    A[0, 2] = -dt*speed*np.sin(theta)
-    A[1, 2] = dt*speed*np.cos(theta)
-    B[2, 0] = dt*speed/(wheelbase*np.cos(phi)**2)
-
-    return A, B, M, N
 
 def get_jacobian(x_est, control):
     '''
@@ -706,6 +686,29 @@ def execute_path_LQR(robot, traj, obstacles):
     done, _, _ = execute_path_LQR_data(robot, traj, obstacles)
     return done
 
+
+def get_dyn(x):
+    '''
+    Returns the A, B matrix of the LTI system represented by:
+    x_t+1 = A@x_t + B@u_t + m_t  , m_t ~ N(0,M)
+    z_t+1 = x_t + n_t, n_t ~ N(0,N)
+    :returns (A, B, M, N): where the parameters correspond to the above
+    equation.
+    '''
+    assert x.shape[0] == 5, "Shape of x does not match"
+    v = x[3]
+    phi = x[4]
+    theta = x[2]
+    A = np.array([
+        [1, 0., -v*np.sin(theta)*dt, np.cos(theta)*dt],
+        [0, 1., v*np.cos(theta)*dt, np.sin(theta)*dt],
+        [0, 0., 1., np.tan(phi)*dt/wheelbase],
+        [0, 0., 0., 1.]
+    ])
+
+    B = np.zeros((4, 1))
+    B[2, 0] = v*dt/(wheelbase*(np.cos(theta)**2+1e-2))
+    return A, B, M, N
 
 def execute_path_LQR_data(robot, traj, obstacles, get_log=False):
     '''
