@@ -338,7 +338,6 @@ def x_hat(robot, x_est, control, obs, P):
     :param obs: The current observatoin
     :returns tuple: A tuple of the current state estimate and Covariance matrix
     '''
-    A, B, M, N = get_dyn(robot)
     # Predict step
     x_bar = get_forward(x_est, control)
     J = get_jacobian(x_est, control)
@@ -475,6 +474,64 @@ def get_path(robot, obstacles, model):
     return est_state, d
 
 
+def get_pathv2(robot, obstacles, model):
+    '''
+    Generate a random path, until collision or, until the robot leaves the
+    workspace and calculate the collision distance. 
+    :param robot: The pybullet robot ID
+    :param obstacles: A list of pybullet obstacle ID
+    :param model: the robot python object
+    :return (est_state, d): A tuple of states from model function and true distance function
+    as evaluated from the estimated points.
+    '''
+    est_state = []
+    model_state = []
+    d = []
+    P = np.eye(5)*0
+
+    x, y, theta, _, _ = model.get_state(robot)
+    x_est = np.r_[x, y, theta, 0.0, 0.0]
+    model_state.append(x_est)
+    est_state.append(x_est)
+    collision = False
+    for _ in range(1000):
+        # Sample a random steer value
+        u = (np.random.rand(1)*2-1)*np.pi/2
+        model.step(robot, 20, u)
+        # Get state
+        x, y, theta, _, _ = model.get_state(robot)
+        # Check for collision 
+        if any((p.getContactPoints(robot, obs) for obs in obstacles)):
+            collision = True
+            break 
+        # Check for state is out of frame
+        if x<-0.1 or x > 10.1 or y<-0.1 or y>10.1:
+            break
+
+        # Get estimated state
+        state, obs = model.get_noisy_state(robot)
+        x_est, P = model.x_hat(robot, x_est, u, obs, P)
+        est_state.append(x_est)
+        x_next = model.get_forward(x_est, u)
+        model_state.append(x_next)
+    
+    # Sub-samples position.
+    est_state = est_state[::100]
+    model_state = model_state[::100]
+    for state_i in est_state:
+        model.reset(robot, state_i[0], state_i[1], state_i[2])
+        d.append(model.get_distance(obstacles, robot))
+    # if collision:
+    #     # Sample random points
+    #     for _ in range(5):
+    #         x_temp = x + np.random.rand()
+    #         y_temp = y + np.random.rand()
+    #         theta = (np.random.rand()*2-1)*np.pi/2
+    #         model.reset(robot, x, y, theta)
+    #         est_state.append(np.r_[x_temp, y_temp, theta, 0., 0.0])
+    #         d.append(model.get_distance(obstacles, robot))
+    return est_state, d
+
 # GP collision model from KF state_estimation
 def get_model_KF(robot, obstacles, model):
     '''
@@ -505,7 +562,7 @@ def get_model_KF(robot, obstacles, model):
                 theta = (np.random.rand()*2-1)*np.pi
                 model.reset(robot, state[0], state[1], theta)
 
-            est_state, d = get_path(robot, obstacles, model)
+            est_state, d = get_pathv2(robot, obstacles, model)
 
             X_temp = np.array(est_state)
             X_orientation = np.c_[np.cos(X_temp[:, 2]), np.sin(X_temp[:, 2])]
@@ -521,7 +578,7 @@ def get_model_KF(robot, obstacles, model):
     kernel = GPy.kern.RBF(input_dim=4)
     m = GPy.models.GPRegression(X[1:,:], Y[1:,None], kernel)
     try:
-        data = np.load('env_10_param.npy')
+        data = np.load('env_10_param_dubins.npy')
         # Ignore the first row, since it is just filler values.
         m.update_model(False)
         m.initialize_parameter()
@@ -530,7 +587,7 @@ def get_model_KF(robot, obstacles, model):
         m.update_model(True)
     except FileNotFoundError:
         m.optimize()
-        np.save('env_10_param.npy', m.param_array)
+        np.save('env_10_param_dubins.npy', m.param_array)
     return m 
 
 
