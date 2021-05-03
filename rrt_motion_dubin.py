@@ -19,12 +19,11 @@ except ImportError:
     print("ValidityChecker and ValidityCheckerDistance won't work")
     raise ImportError("Run in a docker with ompl")
 
-from models import racecar
+from models import racecarv2
 from config import box_width, box_length, xy, cir_radius
 
 sns.set()
-obstacles, robot = racecar.set_env()
-
+obstacles, robot = racecarv2.set_env()
 
 def SE2State2Tuple(state):
     '''
@@ -48,8 +47,7 @@ def reset_threshold(thresh):
     c = N.ppf(1-thresh)
     print("New threshold set as {}".format(thresh)) 
 
-m = racecar.get_model_KF(robot, obstacles, racecar)
-# m = racecar.get_model(robot, obstacles, racecar)
+m = racecarv2.get_model_KF(robot, obstacles, racecarv2)
 
 class ValidityChecker(ob.StateValidityChecker):
     '''A class to check the validity of the state
@@ -71,12 +69,15 @@ class ValidityCheckerDistance(ob.StateValidityChecker):
         '''
         Check if the given state is valid.
         '''
-        racecar.reset(robot, state.getX(), state.getY(), state.getYaw())
-        d = racecar.get_distance(obstacles, robot)
-        return d>=0
+        collision = racecarv2.check_collision(
+            np.r_[state.getX(), state.getY(), state.getYaw()],
+            obstacles,
+            robot
+        )
+        return not collision
 
 # Wheel rotation is kept at np.pi*0.35, R = wheelbase/np.sin(max_steer)
-dubinSpace = ob.DubinsStateSpace(0.4)
+dubinSpace = ob.DubinsStateSpace(0.5)
 
 # Define SpaceInformation object
 si = ob.SpaceInformation(dubinSpace)
@@ -150,20 +151,22 @@ def start_experiment(start, samples):
         print("Turn on GP_check and rerun experiment")
         raise NameError("GP_check value does not satisfy")
 
-    exp = 'CCGP-MPv2'
+    exp = 'CCGP-MP'
     exp_num = 2
     
     for i in range(start, start+samples):
         path_param = {}
-        data = pickle.load(open('/root/data/dubins/CCGP-MPv2/exp1/path_{}.p'.format(i), 'rb'))
+        data = pickle.load(open('/root/data/dubinsv2/CCGP-MP/exp1/path_{}.p'.format(i), 'rb'))
 
         start = ob.State(dubinSpace)
-        start[0] = data['path'][0,0]
-        start[1] = data['path'][0,1]
+        start[0] = data['path'][0, 0]
+        start[1] = data['path'][0, 1]
+        start[2] = data['path'][0, 2]
 
         goal = ob.State(dubinSpace)
         goal[0] = data['path'][-1, 0]
         goal[1] = data['path'][-1, 1]
+        goal[2] = data['path'][-1, 2]
 
         # # Define random start and goal locations
         # start = ob.State(dubinSpace)
@@ -182,7 +185,7 @@ def start_experiment(start, samples):
         path_param['path_interpolated'] = path_interpolated
         path_param['success'] = success
 
-        pickle.dump(path_param, open('/root/data/dubins/{}/exp{}/path_{}.p'.format(exp, exp_num, i), 'wb'))
+        pickle.dump(path_param, open('/root/data/dubinsv2/{}/exp{}/path_{}.p'.format(exp, exp_num, i), 'wb'))
 
 
 def start_experiment_rrt(start, samples):
@@ -191,14 +194,14 @@ def start_experiment_rrt(start, samples):
     :param start: The start index of the experiment.
     :param samples: The number of samples to be collected
     '''
-    exp_num = 15
+    exp_num = 1
     if GP_check:
         print("Turn off GP_check and rerun experiment")
         raise NameError("GP_check value does not satisfy")
     
     for i in range(start, start+samples):
         print("Planning Path: {}".format(i))
-        data = pickle.load(open('/root/data/dubins/CCGP-MP/exp{}/path_{}.p'.format(exp_num, i), 'rb'))
+        data = pickle.load(open('/root/data/dubinsv2/CCGP-MP/exp{}/path_{}.p'.format(exp_num, i), 'rb'))
         start_array = data['path'][0]
         goal_array = data['path'][-1]
         path_param = {}
@@ -218,7 +221,7 @@ def start_experiment_rrt(start, samples):
         path_param['path_interpolated'] = path_interpolated
         path_param['success'] = success
 
-        pickle.dump(path_param, open('/root/data/dubins/RRT/exp{}/path_{}.p'.format(exp_num, i), 'wb'))
+        pickle.dump(path_param, open('/root/data/dubinsv2/RRT_star/exp{}/path_{}.p'.format(exp_num, i), 'wb'))
         
 
 def evaluate_path(start, samples):
@@ -227,15 +230,15 @@ def evaluate_path(start, samples):
     :param start: The start index
     :param samples: The number of samples to be collected
     '''
-    exp = 'RRT'
-    exp_num = 16
+    exp = 'CCGP-MP'
+    exp_num = 2
     for i in range(start, start+samples):
-        root_file = '/root/data/dubins/{}/exp{}/path_{}.p'.format(exp, exp_num, i)
+        root_file = '/root/data/dubinsv2/{}/exp{}/path_{}.p'.format(exp, exp_num, i)
         path_param = pickle.load(open(root_file, 'rb'))
         accuracy = 0
         if path_param['success']:
             for _ in range(100):
-                done = racecar.execute_path_LQR(robot, path_param['path_interpolated'], obstacles)
+                done = racecarv2.execute_path(robot, path_param['path_interpolated'], obstacles)
                 if done:
                     accuracy += 1
         path_param['accuracy'] = accuracy
@@ -364,7 +367,7 @@ if __name__=="__main__":
         # collect_data_rrt(paths[i])
     start_experiment(start, samples)
     # start_experiment_rrt(start, samples)
-    # evaluate_path(start, samples)
+    evaluate_path(start, samples)
     # path_param = pickle.load(open('/root/data/dubins/path_0.p', 'rb'))
     # done = racecar.execute_path(car, path_param['path_interpolated'], obstacles)
 
@@ -418,4 +421,4 @@ if __name__=="__main__":
         ax.clabel(contour, contour.levels, inline=True, fontsize=10)
         # plt.colorbar(ax)
     
-    racecar.del_all()
+    racecarv2.del_all()
