@@ -9,9 +9,12 @@ dccp/**
 
 # Untrack personal folders
 data/**
+dataset/**
 env_param/**
 jupyter_ws/**
 .vscode/**
+envs/**
+assets_core_v2/**
 
 # Untrack data files
 **/*.npy
