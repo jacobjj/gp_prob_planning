@@ -1,6 +1,6 @@
 #!/bin/bash
 # A script to run ompl-docker
-SAMPLES=5
+SAMPLES=8
 for CID in {0..24..1}
 do
 	docker run -d \
