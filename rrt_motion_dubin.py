@@ -9,7 +9,8 @@ import pickle
 
 import GPy
 
-import os.path as osp
+import os
+from os import path as osp
 import sys
 try:
     import ompl.base as ob
@@ -35,7 +36,7 @@ def SE2State2Tuple(state):
 
 
 # Set up planning threshold limits
-thresh = 0.05
+thresh = 0.1
 N = stats.norm(scale=np.sqrt(1/2))
 c = N.ppf(1-thresh)
 def reset_threshold(thresh):
@@ -83,7 +84,7 @@ dubinSpace = ob.DubinsStateSpace(0.5)
 si = ob.SpaceInformation(dubinSpace)
 
 # Collision checker obj
-GP_check = True
+GP_check = False
 if GP_check:
     ValidityChecker_obj = ValidityChecker(si)
 else:
@@ -142,98 +143,72 @@ def get_path(start, goal):
     
     return np.array(path), np.array(path_interpolated), success
 
-def start_experiment(start, samples):
+def start_experiment(start, samples, expFolder, randomSample, compExpFolder=None, ccgpFlag=False):
     '''
-    Run the RRT* experiments for 100 start and goal points for the same map
+    Save the RRT* experiments for a given range of (start, start+samples) with or without 
+    CCGP. 
+    :param start: The start index
+    :param samples: The number of samples to collect.
+    :param expFolder: Location to save the data.
+    :param RandomSample: If True, randomly sample valid start and goal pairs.
+    :param compExpFolder: The experiment Folder to select start and goal pairs from.
+    :param ccgpFlag: If True, plan RRT* using CCGP 
     '''
-    
-    if not GP_check:
-        print("Turn on GP_check and rerun experiment")
-        raise NameError("GP_check value does not satisfy")
+    assert osp.isdir(expFolder), f"The file directory, {expFolder}, does not exits"
 
-    exp = 'CCGP-MP'
-    exp_num = 2
+    if not randomSample and compExpFolder is not None:
+        assert osp.isdir(compExpFolder), "No folder found to compare"
+
+    if ccgpFlag:
+        assert GP_check, "Turn on GP_check and rerun experiment"
+    else:
+        assert (not GP_check), "Turn off GP_check and rerun experiment"
     
     for i in range(start, start+samples):
         path_param = {}
-        data = pickle.load(open('/root/data/dubinsv2/CCGP-MP/exp1/path_{}.p'.format(i), 'rb'))
+        if randomSample:
+            # Define random start and goal locations
+            start = ob.State(dubinSpace)
+            start.random()
+            while not ValidityChecker_obj.isValid(start()):
+                start.random()
 
-        start = ob.State(dubinSpace)
-        start[0] = data['path'][0, 0]
-        start[1] = data['path'][0, 1]
-        start[2] = data['path'][0, 2]
+            goal = ob.State(dubinSpace)
+            goal.random()
+            while not ValidityChecker_obj.isValid(goal()):
+                goal.random()  
+        else:
+            data = pickle.load(open(osp.join(compExpFolder, f'path_{i}.p'), 'rb'))
 
-        goal = ob.State(dubinSpace)
-        goal[0] = data['path'][-1, 0]
-        goal[1] = data['path'][-1, 1]
-        goal[2] = data['path'][-1, 2]
+            start = ob.State(dubinSpace)
+            start[0] = data['path'][0, 0]
+            start[1] = data['path'][0, 1]
+            start[2] = data['path'][0, 2]
 
-        # # Define random start and goal locations
-        # start = ob.State(dubinSpace)
-        # start.random()
-        # while not ValidityChecker_obj.isValid(start()):
-        #     start.random()
-    
-        # goal = ob.State(dubinSpace)
-        # goal.random()
-        # while not ValidityChecker_obj.isValid(goal()):
-        #     goal.random()  
-
+            goal = ob.State(dubinSpace)
+            goal[0] = data['path'][-1, 0]
+            goal[1] = data['path'][-1, 1]
+            goal[2] = data['path'][-1, 2]
+        
         path, path_interpolated, success = get_path(start, goal)
 
         path_param['path'] = path
         path_param['path_interpolated'] = path_interpolated
         path_param['success'] = success
 
-        pickle.dump(path_param, open('/root/data/dubinsv2/{}/exp{}/path_{}.p'.format(exp, exp_num, i), 'wb'))
-
-
-def start_experiment_rrt(start, samples):
-    '''
-    Run the RRT* experiment with collision checking using distance.
-    :param start: The start index of the experiment.
-    :param samples: The number of samples to be collected
-    '''
-    exp_num = 1
-    if GP_check:
-        print("Turn off GP_check and rerun experiment")
-        raise NameError("GP_check value does not satisfy")
-    
-    for i in range(start, start+samples):
-        print("Planning Path: {}".format(i))
-        data = pickle.load(open('/root/data/dubinsv2/CCGP-MP/exp{}/path_{}.p'.format(exp_num, i), 'rb'))
-        start_array = data['path'][0]
-        goal_array = data['path'][-1]
-        path_param = {}
-        # Define start and goal locations from file
-        start = ob.State(dubinSpace)
-        start().setX(start_array[0])
-        start().setY(start_array[1])
-        start().setYaw(start_array[2])
-
-        goal = ob.State(dubinSpace)
-        goal().setX(goal_array[0])
-        goal().setY(goal_array[1])
-        goal().setYaw(goal_array[2])
-
-        path, path_interpolated, success = get_path(start, goal)
-        path_param['path'] = path
-        path_param['path_interpolated'] = path_interpolated
-        path_param['success'] = success
-
-        pickle.dump(path_param, open('/root/data/dubinsv2/RRT_star/exp{}/path_{}.p'.format(exp_num, i), 'wb'))
+        pickle.dump(path_param, open(osp.join(expFolder, f'path_{i}.p'), 'wb'))
         
 
-def evaluate_path(start, samples):
+def evaluate_path(start, samples, expFolder):
     '''
-    Evaluate the path of the trajectory.
+    Evaluate the path of the trajectory for 100 trials and save the stats back
+    in the pickle file.
     :param start: The start index
     :param samples: The number of samples to be collected
+    :param expFolder: The folder with the paths
     '''
-    exp = 'CCGP-MP'
-    exp_num = 2
     for i in range(start, start+samples):
-        root_file = '/root/data/dubinsv2/{}/exp{}/path_{}.p'.format(exp, exp_num, i)
+        root_file = osp.join(expFolder, f'path_{i}.p')
         path_param = pickle.load(open(root_file, 'rb'))
         accuracy = 0
         if path_param['success']:
@@ -243,7 +218,7 @@ def evaluate_path(start, samples):
                     accuracy += 1
         path_param['accuracy'] = accuracy
         print("Accuracy for path {} : {}".format(i, accuracy))
-        pickle.dump(path_param, open(root_file.format(i), 'wb'))
+        pickle.dump(path_param, open(root_file, 'wb'))
 
 
 def collect_data(num):
@@ -356,18 +331,22 @@ def collect_data_rrt(num):
     data['rrt'] = path_param
     pickle.dump(data, open(data_file, 'wb'))
 
+import argparse
 
 if __name__=="__main__":
-    start, samples = int(sys.argv[1]), int(sys.argv[2])
+    parser = argparse.ArgumentParser(description="Collect RRT/RRT* paths using w/ without CCGP-MP")
+    parser.add_argument('--start', help='The start index of the experiment', default=0, type=int)
+    parser.add_argument('--samples', help='Number of paths to collect', default=1, type=int)
+    parser.add_argument('--expFolder', help='Location to save the collected data')
+    parser.add_argument('--compExpFolder', help='Location to save the collected data', default=None)
+    parser.add_argument('-r', '--randomSample', help='Sample random start and goal location', action="store_true")
+    parser.add_argument('--CCGP', help='Plan with CCGP enabled', action="store_true")
 
-    # paths = [27, 19, 21, 28, 39, 23, 7, 12, 9]
-    # collect_data_rrt(start)
-    # for i in range(start, start+samples):
-        # collect_data(paths[i])
-        # collect_data_rrt(paths[i])
-    start_experiment(start, samples)
-    # start_experiment_rrt(start, samples)
-    evaluate_path(start, samples)
+    args = parser.parse_args()
+
+    start_experiment(args.start, args.samples, args.expFolder, args.randomSample, compExpFolder=args.compExpFolder)
+    evaluate_path(args.start, args.samples, args.expFolder)
+    
     # path_param = pickle.load(open('/root/data/dubins/path_0.p', 'rb'))
     # done = racecar.execute_path(car, path_param['path_interpolated'], obstacles)
 
@@ -420,5 +399,3 @@ if __name__=="__main__":
         contour = plt_objects['gpmean'][0]
         ax.clabel(contour, contour.levels, inline=True, fontsize=10)
         # plt.colorbar(ax)
-    
-    racecarv2.del_all()
