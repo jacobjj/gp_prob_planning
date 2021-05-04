@@ -1,6 +1,6 @@
 # Paper Rebuttals:
 	* CodeClean up:
-		* Commit all code
+		* ~~Commit all code~~
 		* Write tests for reproducing results
 		* Remove redundant/old codes/
 		* Test code again
