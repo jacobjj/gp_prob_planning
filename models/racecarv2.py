@@ -24,15 +24,15 @@ p = bc.BulletClient(connection_mode=pyb.DIRECT)
 
 # Model parameters
 delta_t = 1/20
-# Motion Noise
-M = np.eye(3)*1e-1
-M[2, 2] = np.deg2rad(10)**2
-M_t = stats.multivariate_normal(cov=M[:2, :2])
-gamma_t = stats.norm(scale=np.sqrt(M[2, 2]))
-# Observation Noise
-N = np.eye(3)*1e-1
-N[2, 2] = np.deg2rad(5)**2
-N_t = stats.multivariate_normal(cov=N)
+class NoiseParams:
+    # Motion Noise
+    M = None
+    M_t = None
+    gamma_t = None
+    # Observation Noise
+    N = None
+    N_t = None
+    modelName= None
 
 def set_simulation_env(client_obj):
     '''
@@ -146,61 +146,92 @@ def initialize_constraints(client_obj, car):
                         childFramePosition=[0, 0, 0])
     client_obj.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
 
-np.random.seed(10)
-# Randomly generate boxes
-num_boxes = 8
-xy = np.random.rand(num_boxes, 2)*9 + 0.5
+seed = 10
+np.random.seed(seed)
+# # Randomly generate boxes
+# num_boxes = 8
+# xy = np.random.rand(num_boxes, 2)*9 + 0.5
 
-# Randomly generate circles
-num_circles = 5
-xy_circle = np.random.rand(num_circles, 2)*9 + 0.5
+# # Randomly generate circles
+# num_circles = 5
+# xy_circle = np.random.rand(num_circles, 2)*9 + 0.5
 
-def set_obstacles(client_obj):
+# def set_obstacles(client_obj):
+#     '''
+#     A function to set obstacles in the environment
+#     :param client_obj: A pybullet_utils.BulletClient object
+#     '''
+#     rgba = [0.125, 0.5, 0.5, 1]
+#     geomBox = client_obj.createCollisionShape(pyb.GEOM_BOX, halfExtents=[box_length/2, box_width/2, 0.2])
+#     visualBox = client_obj.createVisualShape(pyb.GEOM_BOX, halfExtents=[box_length/2, box_width/2, 0.2], rgbaColor=rgba)
+#     geomCircle = client_obj.createCollisionShape(pyb.GEOM_CYLINDER, radius=cir_radius, height = 0.4)
+#     visualCircle = client_obj.createVisualShape(pyb.GEOM_CYLINDER, radius=cir_radius, length = 0.4, rgbaColor=rgba)
+
+
+#     obstacles_box = [
+#         client_obj.createMultiBody(
+#             baseMass=0,
+#             baseCollisionShapeIndex=geomBox,
+#             baseVisualShapeIndex=visualBox,
+#             basePosition=np.r_[xy_i, 0.2]
+#         ) 
+#         for xy_i in xy
+#         ]
+
+#     obstacles_circle = [
+#         client_obj.createMultiBody(
+#             baseMass=0,
+#             baseCollisionShapeIndex=geomCircle,
+#             baseVisualShapeIndex=visualCircle,
+#             basePosition=np.r_[xy_i, 0.2]
+#         ) 
+#         for xy_i in xy_circle
+#     ]
+#     obstacles = obstacles_box + obstacles_circle
+#     return obstacles
+
+
+
+
+def set_env(name='Random'):
     '''
-    A function to set obstacles in the environment
-    :param client_obj: A pybullet_utils.BulletClient object
-    '''
-    rgba = [0.125, 0.5, 0.5, 1]
-    geomBox = client_obj.createCollisionShape(pyb.GEOM_BOX, halfExtents=[box_length/2, box_width/2, 0.2])
-    visualBox = client_obj.createVisualShape(pyb.GEOM_BOX, halfExtents=[box_length/2, box_width/2, 0.2], rgbaColor=rgba)
-    geomCircle = client_obj.createCollisionShape(pyb.GEOM_CYLINDER, radius=cir_radius, height = 0.4)
-    visualCircle = client_obj.createVisualShape(pyb.GEOM_CYLINDER, radius=cir_radius, length = 0.4, rgbaColor=rgba)
-
-
-    obstacles_box = [
-        client_obj.createMultiBody(
-            baseMass=0,
-            baseCollisionShapeIndex=geomBox,
-            baseVisualShapeIndex=visualBox,
-            basePosition=np.r_[xy_i, 0.2]
-        ) 
-        for xy_i in xy
-        ]
-
-    obstacles_circle = [
-        client_obj.createMultiBody(
-            baseMass=0,
-            baseCollisionShapeIndex=geomCircle,
-            baseVisualShapeIndex=visualCircle,
-            basePosition=np.r_[xy_i, 0.2]
-        ) 
-        for xy_i in xy_circle
-    ]
-    obstacles = obstacles_box + obstacles_circle
-    return obstacles
-
-def set_env():
-    '''
-    Set the environment up with obstacles and a racecar.
+    Set the environment as either Random or Gibson
+    :param name: Either has to be 'Random' or 'Gibson'
     :return tuple: The pybullet ID of obstacles and robot
     '''
+    assert name in ['Random', 'Gibson'], 'Only two environments possible Gibson/Random'
     print('------------------------------------')
     set_simulation_env(p)
     # Load car on simulator
-    car_1 = p.loadURDF("racecar/racecar_differential.urdf", [0.0, 0.0, 0.05074242991633105])  #, [0,0,2],useFixedBase=True)  #, [0,0,2],useFixedBase=True)
-    initialize_constraints(client_obj=p, car=car_1)
-    obstacles_1 = set_obstacles(p)        
-    return obstacles_1, car_1
+    car = p.loadURDF("racecar/racecar_differential.urdf", [0.0, 0.0, 0.05074242991633105])  #, [0,0,2],useFixedBase=True)  #, [0,0,2],useFixedBase=True)
+    initialize_constraints(client_obj=p, car=car)
+    if name=='Random':
+        from models.randomWorld import set_obstacles
+        # Motion Noise
+        NoiseParams.M = np.eye(3)*1e-1
+        NoiseParams.M[2, 2] = np.deg2rad(10)**2
+        NoiseParams.M_t = stats.multivariate_normal(cov=NoiseParams.M[:2, :2])
+        NoiseParams.gamma_t = stats.norm(scale=np.sqrt(NoiseParams.M[2, 2]))
+        # Observation Noise
+        NoiseParams.N = np.eye(3)*1e-1
+        NoiseParams.N[2, 2] = np.deg2rad(5)**2
+        NoiseParams.N_t = stats.multivariate_normal(cov=NoiseParams.N)
+        NoiseParams.modelName = f'random_{seed}'
+    else:
+        from models.gibsonWorld import set_obstacles
+        # Motion Noise
+        NoiseParams.M = np.eye(3)*5e-2
+        NoiseParams.M[2, 2] = np.deg2rad(10)**2
+        NoiseParams.M_t = stats.multivariate_normal(cov=NoiseParams.M[:2, :2])
+        NoiseParams.gamma_t = stats.norm(scale=np.sqrt(NoiseParams.M[2, 2]))
+        # Observation Noise
+        NoiseParams.N = np.eye(3)*5e-2
+        NoiseParams.N[2, 2] = np.deg2rad(5)**2
+        NoiseParams.N_t = stats.multivariate_normal(cov=NoiseParams.N)
+        NoiseParams.modelName = f'gibson'
+
+    obstacles = set_obstacles(p)        
+    return obstacles, car
 
 def check_collision(x, obstacles, robot):
     '''
@@ -254,8 +285,8 @@ def step(x, u):
     assert u.shape[0] == 2
     assert x.shape[0] == 3
     
-    u = u + M_t.rvs()
-    theta = x[2]+gamma_t.rvs()*delta_t
+    u = u + NoiseParams.M_t.rvs()
+    theta = x[2] + NoiseParams.gamma_t.rvs()*delta_t
     x = get_forward(x, u)
     return x
 
@@ -295,7 +326,7 @@ def get_state_obs(x, u):
     of the robot
     '''
     x = step(x, u)
-    z = x + N_t.rvs()
+    z = x + NoiseParams.N_t.rvs()
     return x, z
 
 
@@ -345,9 +376,9 @@ def ekf(x, Sigma, u, z):
     A, B, V = get_dyn(x, u)
     
     x_bar = get_forward(x, u)
-    Sigma_bar = A@Sigma@A.T + V@M@V.T
+    Sigma_bar = A@Sigma@A.T + V@NoiseParams.M@V.T
     
-    K = Sigma_bar@np.linalg.inv(Sigma_bar+N)
+    K = Sigma_bar@np.linalg.inv(Sigma_bar+NoiseParams.N)
     
     x = x_bar + K@(z-x_bar)
     Sigma = (np.eye(3)-K)@Sigma_bar
@@ -408,20 +439,19 @@ def get_path(samples,robot, obstacles):
     return np.array(true_path), np.array(est_path), np.array(d)
 
 
-def get_model_KF(robot, obstacles, model):
+def get_model_KF(robot, obstacles):
     '''
     Navigate the model around the environment, and collect
     distance to collision. Using the data, construct a GP model to
     estimate the distance to collision.
     :param robot: pybullet.MultiBody object representing the robot
     :param obstacles: pybullet.MultiBody object representing the obstacles in the environment
-    :param model: custom function found in folder "models" of the dynamic system
     :returns GPy.models.GPRegression model representing the obstacle space
     '''
     try:
         print("Loading data for map")
-        X = np.load('X_dubins.npy')
-        Y = np.load('Y_dubins.npy')
+        X = np.load(f'param/X_{NoiseParams.modelName}_dubins.npy')
+        Y = np.load(f'param/Y_{NoiseParams.modelName}_dubins.npy')
     except FileNotFoundError:
         print("Did not find file, Generating data ....")
         X = np.array([[0.0, 0.0, 0.0, 0.0]])
@@ -437,15 +467,15 @@ def get_model_KF(robot, obstacles, model):
             Y = np.r_[Y, d[::skip]]
             X = np.r_[X, X_SE2]
             count+=len(d[::skip])
-        np.save('X_dubins.npy', X)
-        np.save('Y_dubins.npy', Y)
+        np.save(f'param/X_{NoiseParams.modelName}dubins.npy', X)
+        np.save(f'param/Y_{NoiseParams.modelName}dubins.npy', Y)
 
     # Construct model
     kernel = GPy.kern.RBF(input_dim=4)
     m = GPy.models.GPRegression(X[1:,:], Y[1:,None], kernel)
     try:
         print("Loading data from file...")
-        data = np.load('env_10_param_dubins.npy')
+        data = np.load(f'param/env_{NoiseParams.modelName}_param_dubins.npy')
         # Ignore the first row, since it is just filler values.
         m.update_model(False)
         m.initialize_parameter()
@@ -455,7 +485,7 @@ def get_model_KF(robot, obstacles, model):
     except FileNotFoundError:
         print("Could not find parameter file, optimizing ...")
         m.optimize()
-        np.save('env_10_param_dubins.npy', m.param_array)
+        np.save(f'param/env_{NoiseParams.modelName}_param_dubins.npy', m.param_array)
     return m 
 
 
@@ -528,6 +558,7 @@ Q = np.eye(3)*10
 # Q[2, 2] = 5
 R = np.eye(1)*0.1
 
+#TODO: Make it Gibson Compatible
 def execute_path(robot, traj_orien, obstacles):
     '''
     Execute the path for evaluating the quality of the path, using KF to estimate the state and 
@@ -546,7 +577,7 @@ def execute_path(robot, traj_orien, obstacles):
     ind = 1
     u = np.r_[0.0 , 0.0]
     goal_reached = False
-
+    path = x[None, :]
     while (not goal_reached) and num<8e3:
         temp_ind, e = calc_nearest_index(x_est, traj_orien, ind)
         if temp_ind>ind:
@@ -563,6 +594,7 @@ def execute_path(robot, traj_orien, obstacles):
         delta = np.clip(fb, -1, 1)
         u = np.r_[0.5, -delta]
         x, z = get_state_obs(x, u)
+        path = np.r_[path, x[None, :]]
         # Check for collisions
         if check_collision(x, obstacles, robot):
             break
@@ -571,11 +603,4 @@ def execute_path(robot, traj_orien, obstacles):
             goal_reached = True
         num +=1
 
-    return goal_reached
-
-
-def del_all():
-    '''
-    Delete all the pybullet connections
-    '''
-    p.__del__()
+    return path, goal_reached
