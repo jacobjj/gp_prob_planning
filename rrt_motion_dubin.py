@@ -36,7 +36,7 @@ def SE2State2Tuple(state):
 
 
 # Set up planning threshold limits
-thresh = 0.1
+thresh = 0.05
 N = stats.norm(scale=np.sqrt(1/2))
 c = N.ppf(1-thresh)
 def reset_threshold(thresh):
@@ -48,7 +48,7 @@ def reset_threshold(thresh):
     c = N.ppf(1-thresh)
     print("New threshold set as {}".format(thresh)) 
 
-m = racecarv2.get_model_KF(robot, obstacles, racecarv2)
+m = racecarv2.get_model_KF(robot, obstacles)
 
 class ValidityChecker(ob.StateValidityChecker):
     '''A class to check the validity of the state
@@ -213,7 +213,7 @@ def evaluate_path(start, samples, expFolder):
         accuracy = 0
         if path_param['success']:
             for _ in range(100):
-                done = racecarv2.execute_path(robot, path_param['path_interpolated'], obstacles)
+                _, done = racecarv2.execute_path(robot, path_param['path_interpolated'], obstacles)
                 if done:
                     accuracy += 1
         path_param['accuracy'] = accuracy
