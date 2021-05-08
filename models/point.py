@@ -1,8 +1,11 @@
 '''Define a LTI point system
 '''
-import pybullet as p
+import pybullet_utils.bullet_client as bc
+import pybullet as pyb
 import pybullet_data
 import numpy as np
+
+from models.randomWorld import set_obstacles
 
 try:
     from ompl import base as ob
@@ -15,10 +18,9 @@ from scipy import stats
 
 from config import box_length, box_width, cir_radius
 
-np.random.seed(3)
+p = bc.BulletClient(connection_mode=pyb.DIRECT)
+# p = bc.BulletClient(connection_mode=pyb.GUI)
 
-# physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
-physicsClient = p.connect(p.DIRECT)
 p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 p.setGravity(0,0,-9.8)
 planeId = p.loadURDF("plane.urdf")
@@ -29,43 +31,15 @@ p.resetDebugVisualizerCamera(
     cameraPitch=-89.9, 
     cameraTargetPosition=[5,5,0])
 
-geomBox = p.createCollisionShape(p.GEOM_BOX, halfExtents=[box_length/2, box_width/2, 0.2])
-geomCircle = p.createCollisionShape(p.GEOM_CYLINDER, radius=cir_radius, height = 0.4)
 geomRobot = p.createCollisionShape(p.GEOM_CYLINDER, radius=0.1, height=0.2)
-# Initialize the position of obstacles
-# xy = [np.r_[2,2], np.r_[2, 8], np.r_[5,5], np.r_[8, 2], np.r_[8, 8]]
 
-# Randomly generate boxes
-num_boxes = 7
-xy = np.random.rand(num_boxes, 2)*9 + 0.5
-
-# Randomly generate circles
-num_circles = 3
-xy_circle = np.random.rand(num_circles, 2)*9 + 0.5
-
-def set_env():
+def set_env(**kwargs):
     '''
     Set the environment up with the obstacles and robot.
+    :param kwargs: Environment parameters
     :return tuple: The pybullet ID of obstacles and robot
     '''
-    obstacles_box = [
-        p.createMultiBody(
-            baseMass=0,
-            baseCollisionShapeIndex=geomBox,
-            basePosition=np.r_[xy_i, 0.2]
-        ) 
-        for xy_i in xy
-        ]
-
-    obstacles_circle = [
-        p.createMultiBody(
-            baseMass=0,
-            baseCollisionShapeIndex=geomCircle,
-            basePosition=np.r_[xy_i, 0.2]
-        ) 
-        for xy_i in xy_circle
-    ]
-    obstacles = obstacles_box + obstacles_circle
+    obstacles = set_obstacles(p, **kwargs)
     robot = p.createMultiBody(
         baseMass=0, 
         baseCollisionShapeIndex=geomRobot, 
