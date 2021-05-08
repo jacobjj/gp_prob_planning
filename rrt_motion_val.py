@@ -20,6 +20,7 @@ except ImportError:
 
 # Import project specific files
 from models import point
+from models.randomWorld import plot_env
 from gp_model import get_model, get_model_KFv2, get_model_KFv2_sparse
 from config import box_width, box_length, xy, cir_radius
 
@@ -28,7 +29,11 @@ thresh = 0.10
 N = stats.norm(scale=np.sqrt(1/2))
 c = N.ppf(1-thresh)
 
-obstacles, robot = point.set_env()
+obstacles, robot = point.set_env(
+    seed=3,
+    num_boxes=7,
+    num_circles=3
+)
 
 # Define LTI system
 A, B, M, N = point.get_dyn()
@@ -364,21 +369,7 @@ if __name__ == "__main__":
 
         fig, ax = plt.subplots()
         sns.set()
-
-        ax.set_xlim((-0.2, 10.2))
-        ax.set_ylim((-0.2, 10.2))
-
-        # Initialize the position of obstacles
-        dimensions = [box_length, box_width]
-        rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
-
-        for xy_i in point.xy_circle:
-            plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r')
-            ax.add_patch(plt_cir)
-
-        for xy_i in point.xy:
-            plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r')
-            ax.add_patch(plt_box)
+        plot_env(ax)
 
         ax.scatter(start[0], start[1], color='g')
         ax.scatter(goal[0], goal[1], color='r')
@@ -425,21 +416,8 @@ if __name__ == "__main__":
         fig, ax = plt.subplots()
         sns.set()
 
-        ax.set_xlim((-0.2, 10.2))
-        ax.set_ylim((-0.2, 10.2))
-
-        # Initialize the position of obstacles
-        dimensions = [box_length, box_width]
-        rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
-
-        for xy_i in point.xy_circle:
-            plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r')
-            ax.add_patch(plt_cir)
-
-        for xy_i in point.xy:
-            plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r')
-            ax.add_patch(plt_box)
-            
+        plot_env(ax)
+        
         total_success = 0
         for i in range(40):
             data = pickle.load(open('/root/data/path_{}.p'.format(i),'rb'))
