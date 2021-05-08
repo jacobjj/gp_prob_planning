@@ -24,7 +24,11 @@ from models import racecarv2
 from config import box_width, box_length, xy, cir_radius
 
 sns.set()
-obstacles, robot = racecarv2.set_env()
+obstacles, robot = racecarv2.set_env(
+    seed=10,
+    num_boxes=8,
+    num_circles=5
+)
 
 def SE2State2Tuple(state):
     '''
