@@ -38,7 +38,7 @@ try:
             '''
             Check if the given state is valid.
             '''
-            collision = gibsonWorld.check_collision(
+            collision = racecarv2.check_collision(
                 np.r_[state.getX(), state.getY(), state.getYaw()],
                 obstacles,
                 robot
@@ -70,9 +70,9 @@ except ImportError:
     print("ValidityChecker and ValidityCheckerDistance won't work")
     # raise ImportError("Run in a docker with ompl")
 
-from models import gibsonWorld
+from models import racecarv2
 
-obstacles, robot = gibsonWorld.set_env()
+obstacles, robot = racecarv2.set_env(name="Gibson")
 
 def SE2State2Tuple(state):
     '''
@@ -88,7 +88,7 @@ thresh = 0.01
 N = stats.norm(scale=np.sqrt(1/2))
 c = N.ppf(1-thresh)
 
-m = gibsonWorld.get_model_KF(robot, obstacles, gibsonWorld)
+m = racecarv2.get_model_KF(robot, obstacles)
 
 
 def get_path(start, goal):
