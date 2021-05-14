@@ -359,7 +359,7 @@ def get_starting_position(robot, obstacles):
     return x_state
 
 
-def get_path(samples,robot, obstacles):
+def get_path(samples, robot, obstacles):
     '''
     Generate a random trajectory
     :param samples: The number of the samples to generate 
@@ -423,8 +423,8 @@ def get_model_KF(robot, obstacles):
             Y = np.r_[Y, d[::skip]]
             X = np.r_[X, X_SE2]
             count+=len(d[::skip])
-        np.save(f'param/X_{NoiseParams.modelName}dubins.npy', X)
-        np.save(f'param/Y_{NoiseParams.modelName}dubins.npy', Y)
+        np.save(f'param/X_{NoiseParams.modelName}_dubins.npy', X)
+        np.save(f'param/Y_{NoiseParams.modelName}_dubins.npy', Y)
 
     # Construct model
     kernel = GPy.kern.RBF(input_dim=4)
