@@ -37,6 +37,7 @@ def set_obstacles(client_obj, **kwargs):
 
     if 'seed' in kwargs.keys():
         np.random.seed(kwargs['seed'])
+        RandomWorld.seed = kwargs['seed']
     else:
         np.random.seed(RandomWorld.seed)
 
@@ -72,7 +73,7 @@ def set_obstacles(client_obj, **kwargs):
     return obstacles
 
 
-def plot_env(ax):
+def plot_env(ax, alpha=1):
     '''
     Plots the environment on matplotlib figure
     :param ax: The axis on which to plot the path.
@@ -83,13 +84,16 @@ def plot_env(ax):
     dimensions = [box_length, box_width]
     rectangle_corner = np.r_[(-dimensions[0]/2, -dimensions[1]/2)]  
     
-    ax.set_xlim((-0.750, 10.5))
-    ax.set_ylim((-0.750, 10.5))
+    # ax.set_xlim((-0.750, 10.5))
+    # ax.set_ylim((-0.750, 10.5))
+    ax.set_xlim((-2, 12))
+    ax.set_ylim((-2, 12))
+
 
     for xy_i in RandomWorld.xy_circle:
-        plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r')
+        plt_cir = plt.Circle(xy_i, radius=cir_radius, color='r', alpha=alpha)
         ax.add_patch(plt_cir)
 
     for xy_i in RandomWorld.xy:
-        plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r')
+        plt_box = plt.Rectangle(xy_i+rectangle_corner, dimensions[0], dimensions[1], color='r', alpha=alpha)
         ax.add_patch(plt_box)
