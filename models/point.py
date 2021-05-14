@@ -1,11 +1,14 @@
 '''Define a LTI point system
 '''
+from os import path as osp
 import pybullet_utils.bullet_client as bc
 import pybullet as pyb
 import pybullet_data
 import numpy as np
 
-from models.randomWorld import set_obstacles
+import GPy
+
+from models.randomWorld import set_obstacles, RandomWorld
 
 try:
     from ompl import base as ob
@@ -292,3 +295,120 @@ def execute_traj_ignoreCol(traj):
             break
         
     return path_est, path_target
+
+
+def get_model_KF(robot, obstacles, samples, dataFolder=None):
+    '''
+    Getting the GP model using the KF. Generating points by executing random trajectories
+    using controller.
+    :param robot: pybullet.MultiBody object representing the robot
+    :param obstacles: pybullet.MultiBody object representing the obstacles in the environment
+    :param samples: The number of samples to use for the model
+    :param dataFolder: The folder where the data and modelParams are stored
+    :returns GPy.models.GPRegression model representing the obstacle space
+    '''
+    if dataFolder is None:
+        dataFolder = 'param'
+    seed = RandomWorld.seed
+    try:
+        print("Loading data for map")
+        X = np.load(osp.join(dataFolder, f'X_{seed}.npy'))
+        Y = np.load(osp.join(dataFolder, f'Y_{seed}.npy'))
+    except FileNotFoundError:
+        print("Could not find data, gathering data")
+        X = np.array([[0.0, 0.0]])
+        Y = np.array([0.0])
+        robotOrientation = (0.0, 0.0, 0.0, 1.0)
+        count = 0
+        while count<samples:
+            start = np.random.rand(2)*14-2
+            goal = np.random.rand(2)*14-2
+            alpha = np.arange(0, 1, step=0.05)
+            traj = (start[:, None]*(1-alpha) + goal[:, None]*alpha).T
+            path_est, path_target = execute_traj_ignoreCol(traj)
+            Y_temp = []
+            for path_i in path_est:
+                p.resetBasePositionAndOrientation(robot, np.r_[path_i, 0.1], robotOrientation)
+                Y_temp.append(get_distance(obstacles, robot))
+            Y = np.r_[Y, Y_temp]
+            X = np.r_[X, np.array(path_target)]
+            count+=len(path_target)
+        np.save(osp.join(dataFolder, f"X_{seed}.npy"), X)
+        np.save(osp.join(dataFolder, f"Y_{seed}.npy"), Y)
+
+    print("Using model from state-estimated points")
+    kernel = GPy.kern.RBF(input_dim=2, variance=1)
+    # Ignore the first row, since it is just filler values.
+    m = GPy.models.GPRegression(X[1:,:], Y[1:,None], kernel)
+    try:
+        model_param = np.load(osp.join(dataFolder, f'env_{seed}_param.npy'))
+        m.update_model(False)
+        m.initialize_parameter()
+        m[:] = model_param
+        print("Loading saved model")
+        m.update_model(True)
+    except FileNotFoundError:
+        print("Could not find trained model")
+        m.optimize()
+        np.save(osp.join(dataFolder, f'env_{seed}_param.npy'), m.param_array)
+    return m
+
+
+def get_model_KF_sparse(robot, obstacles, samples, dataFolder):
+    '''
+    Getting the sparse-GP model using the KF.
+    :param robot: pybullet.MultiBody object representing the robot
+    :param obstacles: pybullet.MultiBody object representing the obstacles in the environment
+    :param model: custom function found in folder "models" of the dynamic system
+    :param samples: The number of samples to use for the model
+    :returns GPy.models.SparseGPRegression model representing the obstacle space
+    '''
+    try:
+        X = np.load(osp.join(dataFolder, 'X.npy'))
+        Y = np.load(osp.join(dataFolder, 'Y.npy'))
+        print("Loading data for map")
+    except FileNotFoundError:
+        print("Could not find data, gathering data")
+        X = np.array([[0.0, 0.0]])
+        Y = np.array([0.0])
+        robotOrientation = (0.0, 0.0, 0.0, 1.0)
+        count = 0
+        while count<samples:
+            start = np.random.rand(2)*10
+            goal = np.random.rand(2)*10
+            alpha = np.arange(0, 1, step=0.05)
+            traj = (start[:, None]*(1-alpha) + goal[:, None]*alpha).T
+            path_est, path_target = execute_traj_ignoreCol(traj)
+            Y_temp = []
+            for path_i in path_est:
+                p.resetBasePositionAndOrientation(robot, np.r_[path_i, 0.1], robotOrientation)
+                Y_temp.append(get_distance(obstacles, robot))
+            Y = np.r_[Y, Y_temp]
+            X = np.r_[X, np.array(path_target)]
+            count+=len(path_target)
+        np.save(osp.join(dataFolder, "X.npy"), X)
+        np.save(osp.join(dataFolder, "Y.npy"), Y)
+
+    print("Using model from state-estimated points")
+    kernel = GPy.kern.RBF(input_dim=2, variance=1)
+    # Ignore the first row, since it is just filler values.
+    rand_index = np.random.permutation(np.arange(1, X.shape[0]))
+    Z = np.random.rand(100, 2)*10
+    m = GPy.models.SparseGPRegression(
+        X=X[rand_index[:samples],:], 
+        Y=Y[rand_index[:samples],None], 
+        Z=Z, 
+        kernel=kernel
+    )
+    try:
+        model_param = np.load(osp.join(dataFolder, 'env_3_param_sparse.npy'))
+        m.update_model(False)
+        m.initialize_parameter()
+        m[:] = model_param
+        print("Loading saved model")
+        m.update_model(True)
+    except FileNotFoundError:
+        print("Could not find trained model")
+        m.optimize()
+        np.save(osp.join(dataFolder, 'env_3_param_sparse.npy'), m.param_array)
+    return m
