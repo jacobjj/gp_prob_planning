@@ -16,6 +16,7 @@ jupyter_ws/**
 envs/**
 assets_core_v2/**
 assets/**
+param/**
 
 # Untrack data files
 **/*.npy
