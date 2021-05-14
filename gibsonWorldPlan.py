@@ -53,7 +53,7 @@ try:
     si = ob.SpaceInformation(dubinSpace)
 
     # Collision checker obj
-    GP_check = False
+    GP_check = True
     if GP_check:
         ValidityChecker_obj = ValidityChecker(si)
     else:
