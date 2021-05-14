@@ -172,7 +172,7 @@ def control_robot():
         steeringAngle = p.readUserDebugParameter(steeringSlider)
         #print(targetVelocity)
 
-        for wheel in gibsonWorld.wheels:
+        for wheel in racecarv2.wheels:
             p.setJointMotorControl2(robot,
                                     wheel,
                                     p.VELOCITY_CONTROL,
@@ -183,7 +183,7 @@ def control_robot():
             p.setJointMotorControl2(robot, steer, p.POSITION_CONTROL, targetPosition=-steeringAngle)
 
         steering
-        print(gibsonWorld.get_distance(obstacles, robot))
+        print(racecarv2.get_distance(obstacles, robot))
         p.stepSimulation()
         time.sleep(0.01)
 
