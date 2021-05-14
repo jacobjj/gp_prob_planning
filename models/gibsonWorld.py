@@ -17,17 +17,11 @@ items = [
     'kitchen_counter', 
     'chair1', 
     'chair2',
-    'wall3',
-    'wall4',
-    'wall5',
-    # 'couch_wall',
-    # 'frwall2',
-    # 'frwall3',
+    'outerWall2',
+    'outerWall3',
+    'outerWall4',
     'kitchen2',
-    # 'bedroom1',
-    # 'br1'
     ]
-
 
 def set_obstacles(client_obj):
     '''
