@@ -1,0 +1,32 @@
+# Untrack pycache
+**/__pycache__/**
+
+# Untrack package folders
+bullet3/**
+python-fcl/**
+sparse_rrt/**
+dccp/**
+
+# Untrack personal folders
+data/**
+dataset/**
+env_param/**
+jupyter_ws/**
+.vscode/**
+envs/**
+assets_core_v2/**
+assets/**
+
+# Untrack data files
+**/*.npy
+**/*.p
+
+# Untrack docker files
+docker/**
+
+# Untrack ipy checkpoints
+*.ipynb
+**/*.ipynb_checkpoints/
+
+# Untrack images
+*.png
